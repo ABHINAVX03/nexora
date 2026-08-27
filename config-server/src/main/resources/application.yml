@@ -4,14 +4,18 @@ server:
 spring:
   application:
     name: config-server
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:native}
   cloud:
     config:
       server:
+        native:
+          search-locations: ${CONFIG_SEARCH_LOCATIONS:file:///app/config-repo,file://${user.dir}/config-repo}
         git:
           uri: ${CONFIG_GIT_URI:file://${user.dir}/config-repo}
           default-label: ${CONFIG_GIT_LABEL:main}
-          clone-on-start: true
-          force-pull: true
+          clone-on-start: false
+          force-pull: false
 
 eureka:
   client:

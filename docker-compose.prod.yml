@@ -23,7 +23,7 @@ services:
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
@@ -31,18 +31,11 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
       CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
     volumes:
       - kafka_data:/tmp/kraft-combined-logs
     networks:
       - nexora-net
-    healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-      start_period: 20s
 
   neo4j:
     image: neo4j:5.15-community
@@ -57,12 +50,6 @@ services:
       - neo4j_data:/data
     networks:
       - nexora-net
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:7474 || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 20s
 
   redis:
     image: redis:7-alpine
@@ -73,11 +60,6 @@ services:
       - redis_data:/data
     networks:
       - nexora-net
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
 
   # ============================================================================
   # 3. Discovery & Config Infrastructure
@@ -94,12 +76,6 @@ services:
       - EUREKA_INSTANCE_HOSTNAME=discovery-server
     networks:
       - nexora-net
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8761/actuator/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 30s
 
   config-server:
     build:
@@ -112,21 +88,15 @@ services:
       - ./config-repo:/app/config-repo:ro
     environment:
       - SERVER_PORT=8888
-      - CONFIG_GIT_URI=file:///app/config-repo
+      - SPRING_PROFILES_ACTIVE=native
+      - CONFIG_SEARCH_LOCATIONS=file:///app/config-repo
       - EUREKA_SERVER_URL=http://discovery-server:8761/eureka/
       - EUREKA_INSTANCE_HOSTNAME=config-server
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
     depends_on:
-      discovery-server:
-        condition: service_healthy
+      - discovery-server
     networks:
       - nexora-net
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8888/actuator/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 30s
 
   # ============================================================================
   # 4. Domain Microservices
@@ -150,14 +120,10 @@ services:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
     depends_on:
-      config-server:
-        condition: service_healthy
-      discovery-server:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
+      - config-server
+      - discovery-server
+      - redis
+      - kafka
     networks:
       - nexora-net
 
@@ -180,14 +146,10 @@ services:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
     depends_on:
-      config-server:
-        condition: service_healthy
-      discovery-server:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - config-server
+      - discovery-server
+      - kafka
+      - redis
     networks:
       - nexora-net
 
@@ -209,12 +171,9 @@ services:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
     depends_on:
-      config-server:
-        condition: service_healthy
-      discovery-server:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
+      - config-server
+      - discovery-server
+      - kafka
     networks:
       - nexora-net
 
@@ -233,12 +192,9 @@ services:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
     depends_on:
-      config-server:
-        condition: service_healthy
-      discovery-server:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
+      - config-server
+      - discovery-server
+      - kafka
     networks:
       - nexora-net
 
@@ -256,10 +212,8 @@ services:
       - EUREKA_INSTANCE_HOSTNAME=chat-service
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
     depends_on:
-      config-server:
-        condition: service_healthy
-      discovery-server:
-        condition: service_healthy
+      - config-server
+      - discovery-server
     networks:
       - nexora-net
 
@@ -280,18 +234,10 @@ services:
       - EUREKA_INSTANCE_HOSTNAME=api-gateway
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
     depends_on:
-      config-server:
-        condition: service_healthy
-      discovery-server:
-        condition: service_healthy
+      - config-server
+      - discovery-server
     networks:
       - nexora-net
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8080/actuator/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 30s
 
   # ============================================================================
   # 6. Web Frontend
@@ -304,8 +250,7 @@ services:
     ports:
       - "${FRONTEND_PORT:-3000}:80"
     depends_on:
-      api-gateway:
-        condition: service_healthy
+      - api-gateway
     networks:
       - nexora-net
 
