@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: linkedin-shared-config
+  namespace: linkedin-microservices
+data:
+  EUREKA_SERVER_URL: "http://discovery-server.linkedin-microservices.svc.cluster.local:8761/eureka/"
+  CONFIG_SERVER_URL: "http://config-server.linkedin-microservices.svc.cluster.local:8888"
+  KAFKA_BOOTSTRAP_SERVERS: "kafka.linkedin-microservices.svc.cluster.local:9092"
+  ZIPKIN_URL: "http://zipkin.linkedin-microservices.svc.cluster.local:9411/api/v2/spans"
+  LOGSTASH_HOST: "logstash.linkedin-microservices.svc.cluster.local"
+  LOGSTASH_PORT: "5000"
+  TRACING_SAMPLING_PROBABILITY: "1.0"

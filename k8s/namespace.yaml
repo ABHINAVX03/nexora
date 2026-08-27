@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: linkedin-microservices
+  labels:
+    app.kubernetes.io/name: linkedin-platform
+    app.kubernetes.io/part-of: linkedin-microservices

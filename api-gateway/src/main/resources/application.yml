@@ -1,0 +1,99 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  application:
+    name: api-gateway
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+
+  codec:
+    max-in-memory-size: 50MB
+
+  cloud:
+    gateway:
+      routes: &gateway_routes
+        - id: user-service-auth
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/api/v1/auth/**
+          filters:
+            - StripPrefix=2
+
+        - id: user-service
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/api/v1/user/**,/api/v1/users/**
+          filters:
+            - StripPrefix=2
+            - AuthFilter
+
+        - id: posts-service
+          uri: lb://POSTS-SERVICE
+          predicates:
+            - Path=/api/v1/posts/**,/api/v1/core/**,/api/v1/likes/**
+          filters:
+            - StripPrefix=2
+            - AuthFilter
+
+        - id: connection-service
+          uri: lb://CONNECTION-SERVICE
+          predicates:
+            - Path=/api/v1/connections/**
+          filters:
+            - StripPrefix=2
+            - AuthFilter
+
+        - id: notification-service
+          uri: lb://NOTIFICATION-SERVICE
+          predicates:
+            - Path=/api/v1/notifications/**
+          filters:
+            - StripPrefix=2
+            - AuthFilter
+
+        - id: chat-service
+          uri: lb://CHAT-SERVICE
+          predicates:
+            - Path=/api/v1/chat/**
+          filters:
+            - StripPrefix=2
+            - AuthFilter
+
+        - id: chat-websocket
+          uri: lb://CHAT-SERVICE
+          predicates:
+            - Path=/ws-chat/**
+
+      server:
+        webflux:
+          routes: *gateway_routes
+
+jwt:
+  secretKey: ${JWT_SECRET_KEY:${jwt.secret:ZGVvbnZrbDNudmNvM3Judm8zbnZsbTNvdmp2bGVudmxlbW9rZXZvZXZtb2Zzb21lc2VjcmV0}}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,env,refresh
+  endpoint:
+    health:
+      show-details: always
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_URL:http://localhost:9411/api/v2/spans}

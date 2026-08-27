@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: discovery-server
+  namespace: linkedin-microservices
+  labels:
+    app: discovery-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: discovery-server
+  template:
+    metadata:
+      labels:
+        app: discovery-server
+    spec:
+      containers:
+        - name: discovery-server
+          image: discovery-server:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8761
+              name: http
+          env:
+            - name: SERVER_PORT
+              value: "8761"
+            - name: EUREKA_INSTANCE_HOSTNAME
+              value: "discovery-server"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8761
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8761
+            initialDelaySeconds: 40
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: discovery-server
+  namespace: linkedin-microservices
+spec:
+  type: ClusterIP
+  selector:
+    app: discovery-server
+  ports:
+    - name: http
+      port: 8761
+      targetPort: 8761

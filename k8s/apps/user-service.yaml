@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: linkedin-microservices
+  labels:
+    app: user-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+        - name: user-service
+          image: user-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9020
+              name: http
+          env:
+            - name: SERVER_PORT
+              value: "9020"
+            - name: CONFIG_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: linkedin-shared-config
+                  key: CONFIG_SERVER_URL
+            - name: EUREKA_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: linkedin-shared-config
+                  key: EUREKA_SERVER_URL
+            - name: EUREKA_INSTANCE_HOSTNAME
+              value: "user-service"
+            - name: POSTGRES_URL
+              valueFrom:
+                secretKeyRef:
+                  name: linkedin-secrets
+                  key: POSTGRES_USER_DB_URL
+            - name: POSTGRES_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: linkedin-secrets
+                  key: POSTGRES_USER_DB_USERNAME
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: linkedin-secrets
+                  key: POSTGRES_USER_DB_PASSWORD
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: linkedin-secrets
+                  key: JWT_SECRET_KEY
+            - name: ZIPKIN_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: linkedin-shared-config
+                  key: ZIPKIN_URL
+            - name: LOGSTASH_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: linkedin-shared-config
+                  key: LOGSTASH_HOST
+            - name: LOGSTASH_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: linkedin-shared-config
+                  key: LOGSTASH_PORT
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "150m"
+            limits:
+              memory: "512Mi"
+              cpu: "750m"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 9020
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 9020
+            initialDelaySeconds: 40
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+  namespace: linkedin-microservices
+spec:
+  type: ClusterIP
+  selector:
+    app: user-service
+  ports:
+    - name: http
+      port: 9020
+      targetPort: 9020

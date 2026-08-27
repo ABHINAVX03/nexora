@@ -1,0 +1,77 @@
+server:
+  port: ${PORT:9020}
+
+spring:
+  application:
+    name: user-service
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 50MB
+  cache:
+    type: redis
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  datasource:
+    url: ${DB_URL:${POSTGRES_URL:jdbc:postgresql://ep-long-frost-azl3g2y0-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channelBinding=require}}
+    username: ${DB_USERNAME:${POSTGRES_USERNAME:neondb_owner}}
+    password: ${DB_PASSWORD:${POSTGRES_PASSWORD:npg_QxTDFbgf8pA4}}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    properties:
+      hibernate:
+        format_sql: true
+
+  kafka:
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.LongSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: true
+
+jwt:
+  secret: ${JWT_SECRET_KEY:${jwt.secretKey:ZGVvbnZrbDNudmNvM3Judm8zbnZsbTNvdmp2bGVudmxlbW9rZXZvZXZtb2Zzb21lc2VjcmV0}}
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:31536000000}
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:315360000000}
+
+app:
+  kafka:
+    topics:
+      profile-viewed: profile-viewed-topic
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env,refresh
+  endpoint:
+    health:
+      show-details: always
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_URL:http://localhost:9411/api/v2/spans}

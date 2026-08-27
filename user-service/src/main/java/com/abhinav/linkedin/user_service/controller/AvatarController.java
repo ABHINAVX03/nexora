@@ -1,0 +1,65 @@
+package com.abhinav.linkedin.user_service.controller;
+
+import com.abhinav.linkedin.user_service.dto.UserDto;
+import com.abhinav.linkedin.user_service.exception.ResourceNotFoundException;
+import com.abhinav.linkedin.user_service.service.AuthService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+@RestController
+@RequestMapping({"/users", "/core/users"})
+@RequiredArgsConstructor
+@Slf4j
+public class AvatarController {
+
+    private final AuthService authService;
+    private static final String AVATAR_UPLOAD_DIR = "uploads/avatars";
+
+    @PostMapping("/{userId}/avatar/upload")
+    public ResponseEntity<UserDto> uploadAvatar(
+            @PathVariable Long userId,
+            @RequestParam("file") MultipartFile file
+    ) {
+        UserDto updatedUser = authService.uploadAvatar(userId, file);
+        return ResponseEntity.ok(updatedUser);
+    }
+
+    @GetMapping("/avatar/files/{filename}")
+    public ResponseEntity<Resource> getAvatarFile(@PathVariable String filename) {
+        String safeName = Paths.get(filename).getFileName().toString();
+        Path filePath = Paths.get(AVATAR_UPLOAD_DIR, safeName);
+        File file = filePath.toFile();
+
+        if (!file.exists() || !file.isFile()) {
+            throw new ResourceNotFoundException("Avatar file not found: " + filename);
+        }
+
+        Resource resource = new FileSystemResource(file);
+        String contentType = "application/octet-stream";
+        try {
+            String probe = Files.probeContentType(filePath);
+            if (probe != null) {
+                contentType = probe;
+            }
+        } catch (IOException ignored) {
+        }
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CACHE_CONTROL, "public, max-age=31536000")
+                .contentType(MediaType.parseMediaType(contentType))
+                .body(resource);
+    }
+}

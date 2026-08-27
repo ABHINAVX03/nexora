@@ -1,0 +1,34 @@
+server:
+  port: ${PORT:8888}
+
+spring:
+  application:
+    name: config-server
+  cloud:
+    config:
+      server:
+        git:
+          uri: ${CONFIG_GIT_URI:file://${user.dir}/config-repo}
+          default-label: ${CONFIG_GIT_LABEL:main}
+          clone-on-start: true
+          force-pull: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,env,refresh
+  endpoint:
+    health:
+      show-details: always

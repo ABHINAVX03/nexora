@@ -1,0 +1,60 @@
+server:
+  port: ${PORT:8090}
+
+spring:
+  application:
+    name: connection-service
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+
+  neo4j:
+    uri: ${NEO4J_URI:neo4j+s://36ad1340.databases.neo4j.io}
+    authentication:
+      username: ${NEO4J_USERNAME:neo4j}
+      password: ${NEO4J_PASSWORD:uwOfNhW07RUeP79V2s-AVDfOa6vNhSBxI68WeNav9m8}
+
+  data:
+    neo4j:
+      database: ${NEO4J_DATABASE:neo4j}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    template:
+      observation-enabled: true
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.LongSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+
+app:
+  kafka:
+    topics:
+      connection-request: send-connection-request-topic
+      connection-accepted: accept-connection-request-topic
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env,refresh
+  endpoint:
+    health:
+      show-details: always
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_URL:http://localhost:9411/api/v2/spans}

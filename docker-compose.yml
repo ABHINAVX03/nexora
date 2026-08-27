@@ -1,0 +1,265 @@
+services:
+  # ============================================================================
+  # 1. Telemetry & Distributed Tracing
+  # ============================================================================
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: nexora-zipkin
+    ports:
+      - "${ZIPKIN_PORT:-9411}:9411"
+    environment:
+      - STORAGE_TYPE=mem
+    networks:
+      - nexora-net
+
+  # ============================================================================
+  # 2. Database, Graph, Cache & Messaging Middleware
+  # ============================================================================
+  kafka:
+    image: apache/kafka:3.7.0
+    container_name: nexora-kafka
+    ports:
+      - "${KAFKA_PORT:-9092}:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+    volumes:
+      - kafka_data:/tmp/kraft-combined-logs
+    networks:
+      - nexora-net
+
+  neo4j:
+    image: neo4j:5.15-community
+    container_name: nexora-neo4j
+    ports:
+      - "${NEO4J_HTTP_PORT:-7474}:7474"
+      - "${NEO4J_BOLT_PORT:-7687}:7687"
+    environment:
+      - NEO4J_AUTH=${NEO4J_AUTH:-neo4j/12345678}
+      - NEO4J_PLUGINS=["apoc"]
+    volumes:
+      - neo4j_data:/data
+    networks:
+      - nexora-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: nexora-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - nexora-net
+
+  # ============================================================================
+  # 3. Discovery & Config Infrastructure
+  # ============================================================================
+  discovery-server:
+    build:
+      context: ./discovery-server
+      dockerfile: Dockerfile
+    container_name: nexora-discovery-server
+    ports:
+      - "${DISCOVERY_PORT:-8761}:8761"
+    environment:
+      - SERVER_PORT=8761
+      - EUREKA_INSTANCE_HOSTNAME=discovery-server
+    networks:
+      - nexora-net
+
+  config-server:
+    build:
+      context: ./config-server
+      dockerfile: Dockerfile
+    container_name: nexora-config-server
+    ports:
+      - "${CONFIG_PORT:-8888}:8888"
+    volumes:
+      - ./config-repo:/app/config-repo:ro
+    environment:
+      - SERVER_PORT=8888
+      - CONFIG_GIT_URI=file:///app/config-repo
+      - EUREKA_SERVER_URL=http://discovery-server:8761/eureka/
+      - EUREKA_INSTANCE_HOSTNAME=config-server
+      - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+    depends_on:
+      - discovery-server
+    networks:
+      - nexora-net
+
+  # ============================================================================
+  # 4. Domain Microservices
+  # ============================================================================
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    container_name: nexora-user-service
+    ports:
+      - "${USER_SERVICE_PORT:-9020}:9020"
+    volumes:
+      - ./uploads:/app/uploads
+    environment:
+      - SERVER_PORT=9020
+      - CONFIG_SERVER_URL=http://config-server:8888
+      - EUREKA_SERVER_URL=http://discovery-server:8761/eureka/
+      - EUREKA_INSTANCE_HOSTNAME=user-service
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+    depends_on:
+      - config-server
+      - discovery-server
+      - redis
+      - kafka
+    networks:
+      - nexora-net
+
+  posts-service:
+    build:
+      context: ./posts-service
+      dockerfile: Dockerfile
+    container_name: nexora-posts-service
+    ports:
+      - "${POSTS_SERVICE_PORT:-9010}:9010"
+    volumes:
+      - ./uploads:/app/uploads
+    environment:
+      - SERVER_PORT=9010
+      - CONFIG_SERVER_URL=http://config-server:8888
+      - EUREKA_SERVER_URL=http://discovery-server:8761/eureka/
+      - EUREKA_INSTANCE_HOSTNAME=posts-service
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+    depends_on:
+      - config-server
+      - discovery-server
+      - kafka
+      - redis
+    networks:
+      - nexora-net
+
+  connection-service:
+    build:
+      context: ./connection-service
+      dockerfile: Dockerfile
+    container_name: nexora-connection-service
+    ports:
+      - "${CONNECTION_SERVICE_PORT:-8090}:8090"
+    environment:
+      - SERVER_PORT=8090
+      - CONFIG_SERVER_URL=http://config-server:8888
+      - EUREKA_SERVER_URL=http://discovery-server:8761/eureka/
+      - EUREKA_INSTANCE_HOSTNAME=connection-service
+      - NEO4J_URI=neo4j://neo4j:7687
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-12345678}
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+    depends_on:
+      - config-server
+      - discovery-server
+      - neo4j
+      - kafka
+    networks:
+      - nexora-net
+
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    container_name: nexora-notification-service
+    ports:
+      - "${NOTIFICATION_SERVICE_PORT:-9030}:9030"
+    environment:
+      - SERVER_PORT=9030
+      - CONFIG_SERVER_URL=http://config-server:8888
+      - EUREKA_SERVER_URL=http://discovery-server:8761/eureka/
+      - EUREKA_INSTANCE_HOSTNAME=notification-service
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+    depends_on:
+      - config-server
+      - discovery-server
+      - kafka
+    networks:
+      - nexora-net
+
+  chat-service:
+    build:
+      context: ./chat-service
+      dockerfile: Dockerfile
+    container_name: nexora-chat-service
+    ports:
+      - "${CHAT_SERVICE_PORT:-9040}:9040"
+    environment:
+      - SERVER_PORT=9040
+      - CONFIG_SERVER_URL=http://config-server:8888
+      - EUREKA_SERVER_URL=http://discovery-server:8761/eureka/
+      - EUREKA_INSTANCE_HOSTNAME=chat-service
+      - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+    depends_on:
+      - config-server
+      - discovery-server
+    networks:
+      - nexora-net
+
+  # ============================================================================
+  # 5. API Gateway
+  # ============================================================================
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: nexora-api-gateway
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+    environment:
+      - SERVER_PORT=8080
+      - CONFIG_SERVER_URL=http://config-server:8888
+      - EUREKA_SERVER_URL=http://discovery-server:8761/eureka/
+      - EUREKA_INSTANCE_HOSTNAME=api-gateway
+      - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+    depends_on:
+      - config-server
+      - discovery-server
+    networks:
+      - nexora-net
+
+  # ============================================================================
+  # 6. Web Frontend
+  # ============================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: nexora-frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - nexora-net
+
+networks:
+  nexora-net:
+    driver: bridge
+
+volumes:
+  kafka_data:
+  neo4j_data:
+  redis_data:

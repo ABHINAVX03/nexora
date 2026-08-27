@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: linkedin-microservices
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secrets.yaml
+  - apps/discovery-server.yaml
+  - apps/config-server.yaml
+  - apps/api-gateway.yaml
+  - apps/user-service.yaml
+  - apps/posts-service.yaml
+  - apps/connection-service.yaml
+  - apps/notification-service.yaml
+  - apps/redis.yaml
+  - ingress.yaml
+  - hpa.yaml
