@@ -11,11 +11,6 @@ services:
       - STORAGE_TYPE=mem
     networks:
       - nexora-net
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://localhost:9411/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   # ============================================================================
   # 2. Database, Graph, Cache & Messaging Middleware
@@ -43,10 +38,11 @@ services:
     networks:
       - nexora-net
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
       interval: 10s
-      timeout: 5s
-      retries: 5
+      timeout: 10s
+      retries: 10
+      start_period: 20s
 
   neo4j:
     image: neo4j:5.15-community
@@ -62,10 +58,11 @@ services:
     networks:
       - nexora-net
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://localhost:7474 || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:7474 || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 20s
 
   redis:
     image: redis:7-alpine
@@ -78,7 +75,7 @@ services:
       - nexora-net
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
       retries: 5
 
@@ -98,10 +95,11 @@ services:
     networks:
       - nexora-net
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://localhost:8761/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8761/actuator/health || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 12
+      start_period: 30s
 
   config-server:
     build:
@@ -124,10 +122,11 @@ services:
     networks:
       - nexora-net
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://localhost:8888/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8888/actuator/health || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 12
+      start_period: 30s
 
   # ============================================================================
   # 4. Domain Microservices
@@ -204,17 +203,15 @@ services:
       - CONFIG_SERVER_URL=http://config-server:8888
       - EUREKA_SERVER_URL=http://discovery-server:8761/eureka/
       - EUREKA_INSTANCE_HOSTNAME=connection-service
-      - NEO4J_URI=neo4j://neo4j:7687
+      - NEO4J_URI=neo4j+s://36ad1340.databases.neo4j.io
       - NEO4J_USERNAME=neo4j
-      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-12345678}
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-uwOfNhW07RUeP79V2s-AVDfOa6vNhSBxI68WeNav9m8}
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
     depends_on:
       config-server:
         condition: service_healthy
       discovery-server:
-        condition: service_healthy
-      neo4j:
         condition: service_healthy
       kafka:
         condition: service_healthy
@@ -267,7 +264,7 @@ services:
       - nexora-net
 
   # ============================================================================
-  # 5. API Gateway (Reverse Proxy & Security Router)
+  # 5. API Gateway
   # ============================================================================
   api-gateway:
     build:
@@ -290,13 +287,14 @@ services:
     networks:
       - nexora-net
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8080/actuator/health || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 12
+      start_period: 30s
 
   # ============================================================================
-  # 6. Web Frontend (React + Vite + NGINX SPA Web Server)
+  # 6. Web Frontend
   # ============================================================================
   frontend:
     build:
