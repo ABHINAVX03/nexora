@@ -7,14 +7,11 @@ import {
   Bell,
   MessageSquare,
   Search,
-  Moon,
-  Sun,
   Settings,
   LogOut,
   User as UserIcon,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { useTheme } from '../../context/ThemeContext';
 import { useChat } from '../../context/ChatContext';
 import { Avatar } from '../ui/Avatar';
 import { Dropdown } from '../ui/Dropdown';
@@ -27,7 +24,6 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ onOpenSearch }) => {
   const { user, isAuthenticated, logout } = useAuth();
-  const { isDark, toggleTheme } = useTheme();
   const { unreadCount: chatUnreadCount, openChatWith } = useChat();
   const location = useLocation();
   const navigate = useNavigate();
@@ -166,15 +162,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSearch }) => {
               <Search className="w-5 h-5" />
             </button>
           )}
-
-          {/* Theme Toggle */}
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-xl text-light-muted hover:text-light-text dark:text-dark-muted dark:hover:text-dark-text hover:bg-slate-100 dark:hover:bg-dark-elevated transition-colors"
-            title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-          >
-            {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-600" />}
-          </button>
 
           {/* User Profile / Auth State */}
           {isAuthenticated && user ? (
