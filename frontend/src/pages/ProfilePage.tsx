@@ -43,6 +43,7 @@ export const ProfilePage: React.FC = () => {
         bio: userDto.bio,
         location: userDto.location,
         avatarUrl: userDto.avatarUrl,
+        bannerUrl: userDto.bannerUrl,
       };
     },
     staleTime: 30000,

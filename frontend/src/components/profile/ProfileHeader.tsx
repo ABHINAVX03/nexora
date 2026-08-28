@@ -47,6 +47,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const [currentStatus, setCurrentStatus] = useState<ConnectionStatus>(connectionStatus);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [localBannerPreview, setLocalBannerPreview] = useState<string | null>(null);
+  const [localAvatarPreview, setLocalAvatarPreview] = useState<string | null>(null);
 
   // Fetch real-time active / online presence for this user
   const { data: presence } = useQuery<UserPresenceDto>({
@@ -65,6 +67,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     },
     onSuccess: (updatedDto) => {
       updateCurrentUser({ avatarUrl: updatedDto.avatarUrl });
+      queryClient.setQueryData(['user-profile', user.id], (old: User | undefined) => {
+        if (!old) return old;
+        return { ...old, avatarUrl: updatedDto.avatarUrl };
+      });
       queryClient.invalidateQueries({ queryKey: ['user-profile', user.id] });
       queryClient.invalidateQueries({ queryKey: ['user-info'] });
       queryClient.invalidateQueries({ queryKey: ['search-users'] });
@@ -74,6 +80,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       showToast('success', 'Photo Updated', 'Your profile picture has been updated!');
     },
     onError: (err: any) => {
+      setLocalAvatarPreview(null);
       const msg = err?.response?.data?.message || 'Failed to upload photo.';
       showToast('error', 'Upload Failed', msg);
     },
@@ -85,12 +92,17 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     },
     onSuccess: (updatedDto) => {
       updateCurrentUser({ bannerUrl: updatedDto.bannerUrl });
+      queryClient.setQueryData(['user-profile', user.id], (old: User | undefined) => {
+        if (!old) return old;
+        return { ...old, bannerUrl: updatedDto.bannerUrl };
+      });
       queryClient.invalidateQueries({ queryKey: ['user-profile', user.id] });
       queryClient.invalidateQueries({ queryKey: ['user-info'] });
       refreshUserProfile();
       showToast('success', 'Banner Updated', 'Your profile banner has been updated!');
     },
     onError: (err: any) => {
+      setLocalBannerPreview(null);
       const msg = err?.response?.data?.message || 'Failed to upload banner.';
       showToast('error', 'Upload Failed', msg);
     },
@@ -110,6 +122,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       return;
     }
 
+    setLocalAvatarPreview(URL.createObjectURL(file));
     uploadAvatarMutation.mutate(file);
   };
 
@@ -127,6 +140,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       return;
     }
 
+    setLocalBannerPreview(URL.createObjectURL(file));
     uploadBannerMutation.mutate(file);
   };
 
@@ -169,9 +183,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     <div className="rounded-3xl border border-light-border dark:border-dark-border bg-white dark:bg-dark-card shadow-card dark:shadow-card-dark overflow-hidden">
       {/* Hero Cover Banner */}
       <div className="h-36 sm:h-48 w-full relative bg-gradient-to-r from-brand-800 via-indigo-900 to-purple-950 overflow-hidden group/banner">
-        {user.bannerUrl ? (
+        {localBannerPreview || user.bannerUrl ? (
           <img
-            src={user.bannerUrl}
+            key={localBannerPreview || user.bannerUrl}
+            src={localBannerPreview || user.bannerUrl}
             alt={`${user.name}'s Banner`}
             className="w-full h-full object-cover"
           />
@@ -217,7 +232,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           <div className="relative inline-block group">
             <Avatar
               name={user.name}
-              src={user.avatarUrl}
+              src={localAvatarPreview || user.avatarUrl}
               size="2xl"
               isOnline={isActive}
               className="ring-4 ring-white dark:ring-dark-card shadow-elevated"
