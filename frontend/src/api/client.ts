@@ -5,19 +5,26 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 15000,
+  timeout: 30000,
 });
 
-// Request interceptor: inject verified JWT Bearer Token
+// Request interceptor: inject verified JWT Bearer Token & ensure correct multipart headers for FormData
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('nexora_token');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // If payload is FormData, remove Content-Type so the browser dynamically injects multipart/form-data with boundary
+    if (config.data instanceof FormData) {
+      if (config.headers) {
+        delete config.headers['Content-Type'];
+      }
+    } else if (config.headers && !config.headers['Content-Type']) {
+      config.headers['Content-Type'] = 'application/json';
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -70,7 +77,6 @@ apiClient.interceptors.response.use(
       const refreshToken = localStorage.getItem('nexora_refresh_token');
       if (!refreshToken) {
         isRefreshing = false;
-        // Do not immediately wipe if user has token and is in-memory
         return Promise.reject(error);
       }
 
@@ -93,7 +99,6 @@ apiClient.interceptors.response.use(
         }
       } catch (refreshErr: any) {
         processQueue(refreshErr, null);
-        // Only expire session if server explicitly returned 401/403 on refresh
         if (refreshErr?.response?.status === 401 || refreshErr?.response?.status === 403) {
           localStorage.removeItem('nexora_token');
           localStorage.removeItem('nexora_refresh_token');
