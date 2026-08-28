@@ -90,7 +90,7 @@ export const OnboardingPage: React.FC = () => {
     try {
       await connectionApi.sendConnectionRequest(idNum);
       setHasSentConnect(true);
-      showToast('success', 'Invitation Sent', `Sent connection request to User #${idNum}`);
+      showToast('success', 'Invitation Sent', 'Connection request sent successfully!');
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Failed to send request.';
       showToast('error', 'Request Failed', msg);
@@ -176,7 +176,7 @@ export const OnboardingPage: React.FC = () => {
                 <Avatar name={user?.name || 'User'} size="2xl" className="ring-4 ring-brand-500/30" />
                 <h4 className="text-base font-bold">{user?.name}</h4>
                 <p className="text-xs text-light-muted dark:text-dark-muted font-mono">{user?.email}</p>
-                <p className="text-[11px] text-light-muted dark:text-dark-muted">Member ID: #{user?.id}</p>
+                <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">Verified Nexora Member</p>
               </div>
             </div>
           )}

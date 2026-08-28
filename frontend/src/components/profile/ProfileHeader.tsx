@@ -262,7 +262,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               {user.name}
             </h1>
             <Badge variant="brand" size="sm" dot>
-              Member #{user.id}
+              Verified Member
             </Badge>
 
             <span

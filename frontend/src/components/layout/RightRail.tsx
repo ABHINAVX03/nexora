@@ -43,7 +43,7 @@ export const RightRail: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-connection-requests'] });
-      showToast('success', 'Invitation Sent', `Sent connection request to User #${targetUserId}`);
+      showToast('success', 'Invitation Sent', 'Connection request sent successfully!');
       setTargetUserId('');
     },
     onError: (err: any) => {

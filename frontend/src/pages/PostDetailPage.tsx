@@ -47,8 +47,8 @@ export const PostDetailPage: React.FC = () => {
         >
           Back
         </Button>
-        <span className="text-xs text-light-muted dark:text-dark-muted font-mono">
-          Post #{postId}
+        <span className="text-xs font-semibold text-light-muted dark:text-dark-muted">
+          Discussion
         </span>
       </div>
 

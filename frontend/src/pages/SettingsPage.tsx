@@ -49,8 +49,8 @@ export const SettingsPage: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-2 text-xs">
             <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-dark-elevated">
-              <span className="text-light-muted dark:text-dark-muted">Database Member ID</span>
-              <span className="font-mono font-bold">#{user.id}</span>
+              <span className="text-light-muted dark:text-dark-muted">Account Status</span>
+              <span className="font-semibold text-emerald-600 dark:text-emerald-400">Verified Member</span>
             </div>
             <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-dark-elevated">
               <span className="text-light-muted dark:text-dark-muted">Full Name</span>

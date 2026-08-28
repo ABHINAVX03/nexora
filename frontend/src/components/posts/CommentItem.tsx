@@ -37,20 +37,21 @@ export const CommentItem: React.FC<CommentItemProps> = ({
       } catch {
         return {
           id: comment.userId,
-          name: `User #${comment.userId}`,
-          email: `user${comment.userId}@nexora.io`,
+          name: 'Nexora Member',
+          email: '',
         };
       }
     },
     staleTime: 60000,
   });
 
-  const authorName = author?.name || `User #${comment.userId}`;
+  const authorName = author?.name || 'Nexora Member';
 
   return (
     <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50/70 dark:bg-dark-elevated/50 border border-light-border/40 dark:border-dark-border/40 text-xs">
       <Avatar
         name={authorName}
+        src={author?.avatarUrl}
         size="sm"
         onClick={() => navigate(`/profile/${comment.userId}`)}
         className="cursor-pointer flex-shrink-0 mt-0.5"

@@ -17,7 +17,7 @@ export const DiscoverCard: React.FC<DiscoverCardProps> = ({ person, onConnect })
   const navigate = useNavigate();
   const [status, setStatus] = useState<'idle' | 'pending' | 'sent'>('idle');
 
-  // Fetch real user name & email
+  // Fetch real user name & headline
   const { data: userProfile } = useQuery<UserDto>({
     queryKey: ['discover-user', person.userId],
     queryFn: async () => {
@@ -26,16 +26,16 @@ export const DiscoverCard: React.FC<DiscoverCardProps> = ({ person, onConnect })
       } catch {
         return {
           id: person.userId,
-          name: person.name || person.username || `User #${person.userId}`,
-          email: person.email || `user${person.userId}@nexora.io`,
+          name: person.name || person.username || 'Nexora Member',
+          email: person.email || '',
         };
       }
     },
     staleTime: 60000,
   });
 
-  const displayName = userProfile?.name || person.name || person.username || `User #${person.userId}`;
-  const displayEmail = userProfile?.email || person.email || `user${person.userId}@nexora.io`;
+  const displayName = userProfile?.name || person.name || person.username || 'Nexora Member';
+  const displayHeadline = userProfile?.headline || 'Member @ Nexora';
 
   const handleConnectClick = async () => {
     setStatus('pending');
@@ -53,6 +53,7 @@ export const DiscoverCard: React.FC<DiscoverCardProps> = ({ person, onConnect })
         <div className="flex items-start gap-3">
           <Avatar
             name={displayName}
+            src={userProfile?.avatarUrl}
             size="lg"
             onClick={() => navigate(`/profile/${person.userId}`)}
           />
@@ -64,11 +65,13 @@ export const DiscoverCard: React.FC<DiscoverCardProps> = ({ person, onConnect })
               {displayName}
             </h4>
             <p className="text-xs text-light-muted dark:text-dark-muted truncate mt-0.5">
-              {displayEmail}
+              {displayHeadline}
             </p>
-            <p className="text-[11px] text-light-muted dark:text-dark-muted mt-1">
-              Member ID: #{person.userId}
-            </p>
+            {userProfile?.location && (
+              <p className="text-[11px] text-light-muted dark:text-dark-muted truncate mt-0.5">
+                {userProfile.location}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -86,17 +89,11 @@ export const DiscoverCard: React.FC<DiscoverCardProps> = ({ person, onConnect })
         <Button
           variant={status === 'sent' ? 'outline' : 'primary'}
           size="sm"
-          disabled={status === 'sent'}
-          isLoading={status === 'pending'}
-          onClick={handleConnectClick}
           className="flex-1 text-xs"
-          leftIcon={
-            status === 'sent' ? (
-              <Check className="w-3.5 h-3.5 text-emerald-500" />
-            ) : (
-              <UserPlus className="w-3.5 h-3.5" />
-            )
-          }
+          disabled={status === 'pending' || status === 'sent'}
+          isLoading={status === 'pending'}
+          leftIcon={status === 'sent' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <UserPlus className="w-3.5 h-3.5" />}
+          onClick={handleConnectClick}
         >
           {status === 'sent' ? 'Sent' : 'Connect'}
         </Button>

@@ -113,7 +113,7 @@ export const ProfilePage: React.FC = () => {
     return (
       <ErrorState
         title="Member Not Found"
-        message={`Could not load profile for User #${resolvedUserId}. The user may not exist in the database.`}
+        message="This profile could not be found or may have been removed from the network."
         onRetry={() => navigate('/feed')}
       />
     );

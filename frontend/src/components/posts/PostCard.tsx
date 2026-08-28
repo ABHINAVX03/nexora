@@ -67,8 +67,8 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
       } catch {
         return {
           id: post.userId,
-          name: `User #${post.userId}`,
-          email: `user${post.userId}@nexora.io`,
+          name: 'Nexora Member',
+          email: '',
         };
       }
     },
@@ -128,8 +128,8 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
     staleTime: 10000,
   });
 
-  const authorName = author?.name || post.authorName || `User #${post.userId}`;
-  const authorHeadline = author?.headline || `Member #${post.userId}`;
+  const authorName = author?.name || post.authorName || 'Nexora Member';
+  const authorHeadline = author?.headline || 'Member @ Nexora';
   const authorAvatar = author?.avatarUrl || post.authorAvatar;
 
   // Toggle Like mutation

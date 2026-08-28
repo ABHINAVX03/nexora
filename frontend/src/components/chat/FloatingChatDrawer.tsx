@@ -18,6 +18,65 @@ import { connectionApi } from '../../api/connectionApi';
 import { formatTimeAgo } from '../../utils/formatters';
 import { ChatMessageDto, ConversationSummaryDto, Person, UserDto, UserPresenceDto } from '../../types';
 
+const ConversationRow: React.FC<{
+  conv: ConversationSummaryDto;
+  onSelect: (partnerId: number) => void;
+}> = ({ conv, onSelect }) => {
+  const { data: partner } = useQuery<UserDto>({
+    queryKey: ['chat-partner-user', conv.otherUserId],
+    queryFn: async () => {
+      try {
+        return await userApi.getUserById(conv.otherUserId);
+      } catch {
+        return { id: conv.otherUserId, name: 'Nexora Member', email: '' };
+      }
+    },
+    staleTime: 60000,
+  });
+
+  const partnerName = partner?.name || 'Nexora Member';
+
+  return (
+    <div
+      onClick={() => onSelect(conv.otherUserId)}
+      className="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-dark-card hover:bg-brand-50/50 dark:hover:bg-brand-950/30 border border-light-border/60 dark:border-dark-border/60 cursor-pointer transition-all"
+    >
+      <div className="flex items-center gap-2.5 min-w-0">
+        <Avatar
+          name={partnerName}
+          src={partner?.avatarUrl}
+          size="sm"
+          isOnline={conv.isPartnerActive}
+        />
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5">
+            <p className="text-xs font-bold text-light-text dark:text-dark-text truncate">
+              {partnerName}
+            </p>
+            {conv.isPartnerActive && (
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            )}
+          </div>
+          <p className="text-[11px] text-light-muted dark:text-dark-muted truncate">
+            {conv.lastMessage}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+        <span className="text-[9px] text-light-muted dark:text-dark-muted">
+          {formatTimeAgo(conv.lastMessageTime)}
+        </span>
+        {conv.unreadCount > 0 && (
+          <span className="min-w-4 h-4 px-1 rounded-full bg-brand-600 text-white text-[9px] font-bold flex items-center justify-center">
+            {conv.unreadCount}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export const FloatingChatDrawer: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const {
@@ -138,7 +197,7 @@ export const FloatingChatDrawer: React.FC = () => {
 
   if (!isAuthenticated || !user) return null;
 
-  const partnerName = partnerUser?.name || `Member #${activePartnerId}`;
+  const partnerName = partnerUser?.name || 'Nexora Member';
   const isPartnerActive = partnerPresence?.isActive ?? false;
 
   // If completely closed, show only a floating trigger button
@@ -293,43 +352,11 @@ export const FloatingChatDrawer: React.FC = () => {
                     Recent Messages
                   </p>
                   {conversations.map((conv) => (
-                    <div
+                    <ConversationRow
                       key={conv.otherUserId}
-                      onClick={() => selectPartner(conv.otherUserId)}
-                      className="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-dark-card hover:bg-brand-50/50 dark:hover:bg-brand-950/30 border border-light-border/60 dark:border-dark-border/60 cursor-pointer transition-all"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <Avatar
-                          name={`User #${conv.otherUserId}`}
-                          size="sm"
-                          isOnline={conv.isPartnerActive}
-                        />
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <p className="text-xs font-bold text-light-text dark:text-dark-text truncate">
-                              Member #{conv.otherUserId}
-                            </p>
-                            {conv.isPartnerActive && (
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                            )}
-                          </div>
-                          <p className="text-[11px] text-light-muted dark:text-dark-muted truncate">
-                            {conv.lastMessage}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                        <span className="text-[9px] text-light-muted dark:text-dark-muted">
-                          {formatTimeAgo(conv.lastMessageTime)}
-                        </span>
-                        {conv.unreadCount > 0 && (
-                          <span className="min-w-4 h-4 px-1 rounded-full bg-brand-600 text-white text-[9px] font-bold flex items-center justify-center">
-                            {conv.unreadCount}
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                      conv={conv}
+                      onSelect={selectPartner}
+                    />
                   ))}
                 </div>
               )}
@@ -349,13 +376,13 @@ export const FloatingChatDrawer: React.FC = () => {
                       className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-dark-card hover:bg-slate-100 dark:hover:bg-dark-elevated border border-light-border/40 dark:border-dark-border/40 cursor-pointer transition-all"
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <Avatar name={conn.name || `User #${conn.userId}`} size="sm" />
+                        <Avatar name={conn.name || conn.username || 'Nexora Member'} size="sm" />
                         <div className="min-w-0">
                           <p className="text-xs font-semibold text-light-text dark:text-dark-text truncate">
-                            {conn.name || conn.username || `Member #${conn.userId}`}
+                            {conn.name || conn.username || 'Nexora Member'}
                           </p>
                           <p className="text-[10px] text-light-muted dark:text-dark-muted truncate">
-                            ID: #{conn.userId}
+                            Connected
                           </p>
                         </div>
                       </div>

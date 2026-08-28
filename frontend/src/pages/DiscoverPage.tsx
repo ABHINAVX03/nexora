@@ -50,7 +50,7 @@ export const DiscoverPage: React.FC = () => {
     },
     onSuccess: (receiverId) => {
       setSentMap((prev) => ({ ...prev, [receiverId]: true }));
-      showToast('success', 'Invitation Sent', `Connection request sent to member #${receiverId}`);
+      showToast('success', 'Invitation Sent', 'Connection request sent successfully!');
     },
     onError: (err: any) => {
       const msg = err?.response?.data?.message || 'Failed to send connection request.';
@@ -87,7 +87,7 @@ export const DiscoverPage: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search members by name, keyword, or User ID..."
+              placeholder="Search members by name, headline, or keywords..."
               className="w-full h-11 pl-10 pr-4 text-xs rounded-xl bg-white dark:bg-dark-card border border-light-border dark:border-dark-border text-light-text dark:text-dark-text placeholder:text-light-muted dark:placeholder:text-dark-muted focus:outline-none focus:ring-1 focus:ring-brand-500 shadow-subtle"
             />
           </div>
@@ -131,9 +131,11 @@ export const DiscoverPage: React.FC = () => {
                         <p className="text-xs text-light-muted dark:text-dark-muted truncate">
                           {targetUser.headline || 'Member @ Nexora'}
                         </p>
-                        <p className="text-[11px] text-light-muted dark:text-dark-muted">
-                          Member ID: #{targetUser.id}
-                        </p>
+                        {targetUser.location && (
+                          <p className="text-[11px] text-light-muted dark:text-dark-muted truncate">
+                            {targetUser.location}
+                          </p>
+                        )}
                       </div>
                     </div>
 

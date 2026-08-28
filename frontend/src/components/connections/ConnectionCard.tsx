@@ -1,25 +1,29 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ExternalLink, MessageSquare } from 'lucide-react';
+import { MessageSquare, UserCheck, Trash2, ExternalLink } from 'lucide-react';
 import { Person, UserDto, UserPresenceDto } from '../../types';
 import { Avatar } from '../ui/Avatar';
+import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { Badge } from '../ui/Badge';
 import { useQuery } from '@tanstack/react-query';
 import { userApi } from '../../api/userApi';
 import { chatApi } from '../../api/chatApi';
-import { useChat } from '../../context/ChatContext';
 
 export interface ConnectionCardProps {
   person: Person;
+  onMessage?: (userId: number) => void;
+  onRemove?: (userId: number) => void;
 }
 
-export const ConnectionCard: React.FC<ConnectionCardProps> = ({ person }) => {
+export const ConnectionCard: React.FC<ConnectionCardProps> = ({
+  person,
+  onMessage,
+  onRemove,
+}) => {
   const navigate = useNavigate();
-  const { openChatWith } = useChat();
 
-  // Fetch real user name & email for this connection
+  // Fetch real user name & headline
   const { data: userProfile } = useQuery<UserDto>({
     queryKey: ['connection-user', person.userId],
     queryFn: async () => {
@@ -28,8 +32,8 @@ export const ConnectionCard: React.FC<ConnectionCardProps> = ({ person }) => {
       } catch {
         return {
           id: person.userId,
-          name: person.name || person.username || `User #${person.userId}`,
-          email: person.email || `user${person.userId}@nexora.io`,
+          name: person.name || person.username || 'Nexora Member',
+          email: person.email || '',
         };
       }
     },
@@ -45,8 +49,8 @@ export const ConnectionCard: React.FC<ConnectionCardProps> = ({ person }) => {
     refetchInterval: 10000,
   });
 
-  const displayName = userProfile?.name || person.name || person.username || `User #${person.userId}`;
-  const displayEmail = userProfile?.email || person.email || `user${person.userId}@nexora.io`;
+  const displayName = userProfile?.name || person.name || person.username || 'Nexora Member';
+  const displayHeadline = userProfile?.headline || 'Member @ Nexora';
   const isOnline = presence?.isActive ?? false;
 
   return (
@@ -54,6 +58,7 @@ export const ConnectionCard: React.FC<ConnectionCardProps> = ({ person }) => {
       <div className="flex items-start gap-3.5">
         <Avatar
           name={displayName}
+          src={userProfile?.avatarUrl}
           size="lg"
           isOnline={isOnline}
           onClick={() => navigate(`/profile/${person.userId}`)}
@@ -71,15 +76,11 @@ export const ConnectionCard: React.FC<ConnectionCardProps> = ({ person }) => {
             </Badge>
           </div>
           <p className="text-xs text-light-muted dark:text-dark-muted truncate mt-0.5">
-            {displayEmail}
+            {displayHeadline}
           </p>
           <div className="flex items-center gap-2 mt-1">
-            <span className="text-[11px] text-light-muted dark:text-dark-muted">
-              ID: #{person.userId}
-            </span>
-            <span className="text-[10px] text-light-muted dark:text-dark-muted">·</span>
             <span
-              className={`text-[10px] font-semibold flex items-center gap-1 ${
+              className={`text-[11px] font-semibold flex items-center gap-1 ${
                 isOnline ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'
               }`}
             >
@@ -90,6 +91,14 @@ export const ConnectionCard: React.FC<ConnectionCardProps> = ({ person }) => {
               />
               {isOnline ? 'Active now' : 'Offline'}
             </span>
+            {userProfile?.location && (
+              <>
+                <span className="text-[10px] text-light-muted dark:text-dark-muted">·</span>
+                <span className="text-[11px] text-light-muted dark:text-dark-muted truncate">
+                  {userProfile.location}
+                </span>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -104,15 +113,38 @@ export const ConnectionCard: React.FC<ConnectionCardProps> = ({ person }) => {
         >
           Profile
         </Button>
-        <Button
-          variant="primary"
-          size="sm"
-          className="flex-1 text-xs"
-          leftIcon={<MessageSquare className="w-3.5 h-3.5" />}
-          onClick={() => openChatWith(person.userId)}
-        >
-          Message
-        </Button>
+        {onMessage ? (
+          <Button
+            variant="primary"
+            size="sm"
+            className="flex-1 text-xs"
+            leftIcon={<MessageSquare className="w-3.5 h-3.5" />}
+            onClick={() => onMessage(person.userId)}
+          >
+            Message
+          </Button>
+        ) : (
+          <Button
+            variant="primary"
+            size="sm"
+            className="flex-1 text-xs"
+            leftIcon={<ExternalLink className="w-3.5 h-3.5" />}
+            onClick={() => navigate(`/profile/${person.userId}`)}
+          >
+            View
+          </Button>
+        )}
+        {onRemove && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+            onClick={() => onRemove(person.userId)}
+            title="Remove Connection"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
+        )}
       </div>
     </Card>
   );

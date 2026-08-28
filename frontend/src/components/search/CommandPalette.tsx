@@ -98,7 +98,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
                           {user.name}
                         </p>
                         <p className="text-[11px] text-light-muted dark:text-dark-muted truncate">
-                          {user.headline || user.email} · Member #{user.id}
+                          {user.headline || 'Member @ Nexora'}
                         </p>
                       </div>
                     </div>

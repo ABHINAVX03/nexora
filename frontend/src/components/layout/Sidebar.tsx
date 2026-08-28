@@ -83,11 +83,7 @@ export const Sidebar: React.FC = () => {
           </h3>
 
           <p className="text-xs text-light-muted dark:text-dark-muted mt-1 truncate">
-            {user.headline || user.email}
-          </p>
-
-          <p className="text-[11px] text-light-muted dark:text-dark-muted mt-0.5 font-mono">
-            ID: #{user.id}
+            {user.headline || 'Member @ Nexora'}
           </p>
 
           {/* Member Analytics Highlights */}

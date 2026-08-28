@@ -119,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch {
         const fallbackUser: User = {
           id: userId,
-          name: credentials.email.split('@')[0] || `User #${userId}`,
+          name: credentials.email.split('@')[0] || 'Nexora Member',
           email: credentials.email,
           headline: 'Member @ Nexora',
         };

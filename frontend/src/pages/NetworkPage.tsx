@@ -87,7 +87,7 @@ export const NetworkPage: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-connection-requests'] });
-      showToast('success', 'Request Sent', `Connection invitation delivered to User #${connectUserId}`);
+      showToast('success', 'Request Sent', 'Connection invitation sent successfully!');
       setConnectUserId('');
     },
     onError: (err: any) => {
