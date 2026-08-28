@@ -14,6 +14,8 @@ resources:
   - apps/posts-service.yaml
   - apps/connection-service.yaml
   - apps/notification-service.yaml
+  - apps/chat-service.yaml
   - apps/redis.yaml
+  - apps/frontend.yaml
   - ingress.yaml
   - hpa.yaml
