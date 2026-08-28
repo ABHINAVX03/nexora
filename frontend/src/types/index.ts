@@ -197,3 +197,116 @@ export interface ResetPasswordRequest {
   otp: string;
   newPassword: string;
 }
+
+// --- Experience, Education, Companies, Institutions & Skills Models ---
+
+export interface CompanyDto {
+  id: number;
+  name: string;
+  domain?: string;
+  logoUrl?: string;
+  industry?: string;
+  location?: string;
+}
+
+export interface InstitutionDto {
+  id: number;
+  name: string;
+  shortName?: string;
+  logoUrl?: string;
+  location?: string;
+}
+
+export interface ExperienceDto {
+  id: number;
+  userId: number;
+  companyId?: number;
+  companyName: string;
+  companyLogoUrl?: string;
+  isCustomCompany?: boolean;
+  title: string;
+  employmentType?: string;
+  location?: string;
+  startDate: string;
+  endDate?: string | null;
+  isCurrentlyWorking?: boolean;
+  description?: string;
+  skills?: string;
+  createdAt?: string;
+}
+
+export interface ExperienceCreateInput {
+  companyId?: number | null;
+  companyName: string;
+  isCustomCompany?: boolean;
+  title: string;
+  employmentType?: string;
+  location?: string;
+  startDate: string;
+  endDate?: string | null;
+  isCurrentlyWorking?: boolean;
+  description?: string;
+  skills?: string;
+}
+
+export interface EducationDto {
+  id: number;
+  userId: number;
+  institutionId?: number;
+  institutionName: string;
+  institutionShortName?: string;
+  institutionLogoUrl?: string;
+  isCustomInstitution?: boolean;
+  degree: string;
+  fieldOfStudy?: string;
+  startYear: number;
+  endYear?: number | null;
+  grade?: string;
+  description?: string;
+  createdAt?: string;
+}
+
+export interface EducationCreateInput {
+  institutionId?: number | null;
+  institutionName: string;
+  isCustomInstitution?: boolean;
+  degree: string;
+  fieldOfStudy?: string;
+  startYear: number;
+  endYear?: number | null;
+  grade?: string;
+  description?: string;
+}
+
+export interface SkillDto {
+  id: number;
+  name: string;
+  category?: string;
+}
+
+export interface EndorserSummaryDto {
+  id: number;
+  userId: number;
+  name: string;
+  headline?: string;
+  avatarUrl?: string;
+  endorsedAt?: string;
+}
+
+export interface UserSkillDto {
+  id: number;
+  userId: number;
+  skillId?: number;
+  skillName: string;
+  category?: string;
+  endorsementCount: number;
+  isEndorsedByViewer?: boolean;
+  topEndorsers: EndorserSummaryDto[];
+  displayOrder?: number;
+}
+
+export interface AddSkillInput {
+  skillId?: number | null;
+  skillName: string;
+}
+

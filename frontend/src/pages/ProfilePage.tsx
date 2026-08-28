@@ -1,8 +1,22 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { FileText, Users, Eye, TrendingUp, Sparkles, Heart } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  FileText,
+  Users,
+  Eye,
+  TrendingUp,
+  Sparkles,
+  Heart,
+  Briefcase,
+  Layers,
+  Code,
+} from 'lucide-react';
 import { ProfileHeader } from '../components/profile/ProfileHeader';
+import { CareerTimeline } from '../components/profile/CareerTimeline';
+import { ExperienceSection } from '../components/profile/ExperienceSection';
+import { EducationSection } from '../components/profile/EducationSection';
+import { SkillsSection } from '../components/profile/SkillsSection';
 import { PostCard } from '../components/posts/PostCard';
 import { ConnectionCard } from '../components/connections/ConnectionCard';
 import { Tabs } from '../components/ui/Tabs';
@@ -13,15 +27,31 @@ import { ErrorState } from '../components/ui/ErrorState';
 import { userApi } from '../api/userApi';
 import { postApi } from '../api/postApi';
 import { connectionApi } from '../api/connectionApi';
+import { profileApi } from '../api/profileApi';
 import { useAuth } from '../context/AuthContext';
-import { User, Post, Person, ConnectionStatus, PostDto } from '../types';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
+import {
+  User,
+  Post,
+  Person,
+  ConnectionStatus,
+  PostDto,
+  ExperienceDto,
+  ExperienceCreateInput,
+  EducationDto,
+  EducationCreateInput,
+  UserSkillDto,
+  AddSkillInput,
+  EndorserSummaryDto,
+} from '../types';
 
 export const ProfilePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { user: currentUser } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const [activeTab, setActiveTab] = useState<'posts' | 'connections'>('posts');
+  const [activeTab, setActiveTab] = useState<'journey' | 'posts' | 'connections'>('journey');
 
   const resolvedUserId = id ? parseInt(id, 10) : currentUser?.id || 1;
   const isSelf = currentUser ? currentUser.id === resolvedUserId : false;
@@ -49,6 +79,11 @@ export const ProfilePage: React.FC = () => {
     staleTime: 30000,
   });
 
+  useDocumentTitle(
+    profile ? `${profile.name}` : 'Member Profile',
+    profile?.bio || profile?.headline || 'View member experience, education, skills, and timeline on Nexora.'
+  );
+
   // 2. Check Connection Status with target user (from Neo4j Connection Service)
   const { data: isConnected = false } = useQuery<boolean>({
     queryKey: ['connection-status-check', resolvedUserId],
@@ -64,7 +99,46 @@ export const ProfilePage: React.FC = () => {
     staleTime: 5000,
   });
 
-  // 3. Fetch User Posts from Posts Service
+  // 3. Fetch User Experiences
+  const { data: experiences = [], isLoading: isExpLoading } = useQuery<ExperienceDto[]>({
+    queryKey: ['user-experiences', resolvedUserId],
+    queryFn: async () => {
+      try {
+        return await profileApi.getUserExperiences(resolvedUserId);
+      } catch {
+        return [];
+      }
+    },
+    staleTime: 10000,
+  });
+
+  // 4. Fetch User Educations
+  const { data: educations = [], isLoading: isEduLoading } = useQuery<EducationDto[]>({
+    queryKey: ['user-educations', resolvedUserId],
+    queryFn: async () => {
+      try {
+        return await profileApi.getUserEducations(resolvedUserId);
+      } catch {
+        return [];
+      }
+    },
+    staleTime: 10000,
+  });
+
+  // 5. Fetch User Skills & Endorsements
+  const { data: skills = [], isLoading: isSkillsLoading } = useQuery<UserSkillDto[]>({
+    queryKey: ['user-skills', resolvedUserId],
+    queryFn: async () => {
+      try {
+        return await profileApi.getUserSkills(resolvedUserId);
+      } catch {
+        return [];
+      }
+    },
+    staleTime: 10000,
+  });
+
+  // 6. Fetch User Posts from Posts Service
   const { data: userPosts = [], isLoading: isPostsLoading } = useQuery<Post[]>({
     queryKey: ['user-posts', resolvedUserId],
     queryFn: async () => {
@@ -88,7 +162,7 @@ export const ProfilePage: React.FC = () => {
     staleTime: 10000,
   });
 
-  // 4. Fetch User First Connections from Connection Service
+  // 7. Fetch User First Connections from Connection Service
   const { data: userConnections = [], isLoading: isConnectionsLoading } = useQuery<Person[]>({
     queryKey: ['user-connections', resolvedUserId],
     queryFn: async () => {
@@ -99,6 +173,81 @@ export const ProfilePage: React.FC = () => {
       }
     },
     staleTime: 10000,
+  });
+
+  // --- Experience Mutations ---
+  const addExperienceMutation = useMutation({
+    mutationFn: (data: ExperienceCreateInput) => profileApi.createExperience(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-experiences', resolvedUserId] });
+    },
+  });
+
+  const updateExperienceMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: ExperienceCreateInput }) =>
+      profileApi.updateExperience(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-experiences', resolvedUserId] });
+    },
+  });
+
+  const deleteExperienceMutation = useMutation({
+    mutationFn: (id: number) => profileApi.deleteExperience(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-experiences', resolvedUserId] });
+    },
+  });
+
+  // --- Education Mutations ---
+  const addEducationMutation = useMutation({
+    mutationFn: (data: EducationCreateInput) => profileApi.createEducation(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-educations', resolvedUserId] });
+    },
+  });
+
+  const updateEducationMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: EducationCreateInput }) =>
+      profileApi.updateEducation(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-educations', resolvedUserId] });
+    },
+  });
+
+  const deleteEducationMutation = useMutation({
+    mutationFn: (id: number) => profileApi.deleteEducation(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-educations', resolvedUserId] });
+    },
+  });
+
+  // --- Skills & Endorsement Mutations ---
+  const addSkillMutation = useMutation({
+    mutationFn: (data: AddSkillInput) => profileApi.addSkill(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-skills', resolvedUserId] });
+    },
+  });
+
+  const removeSkillMutation = useMutation({
+    mutationFn: (userSkillId: number) => profileApi.removeSkill(userSkillId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-skills', resolvedUserId] });
+    },
+  });
+
+  const endorseSkillMutation = useMutation({
+    mutationFn: (userSkillId: number) => profileApi.endorseSkill(resolvedUserId, userSkillId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-skills', resolvedUserId] });
+    },
+  });
+
+  const removeEndorsementMutation = useMutation({
+    mutationFn: (userSkillId: number) => profileApi.removeEndorsement(resolvedUserId, userSkillId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-skills', resolvedUserId] });
+    },
   });
 
   if (isProfileLoading) {
@@ -123,7 +272,7 @@ export const ProfilePage: React.FC = () => {
   const resolvedConnectionStatus: ConnectionStatus = isConnected ? 'connected' : 'none';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in pb-12">
       {/* Top Profile Header */}
       <ProfileHeader
         user={profile}
@@ -131,8 +280,8 @@ export const ProfilePage: React.FC = () => {
         connectionStatus={resolvedConnectionStatus}
       />
 
-      {/* Member Analytics Card (For Self or Viewing Profile) */}
-      <Card className="p-4 border-light-border dark:border-dark-border bg-white dark:bg-dark-card shadow-subtle">
+      {/* Member Analytics Card */}
+      <Card className="p-4 border-light-border dark:border-dark-border bg-white dark:bg-dark-card shadow-subtle rounded-3xl">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-brand-500" />
@@ -181,10 +330,10 @@ export const ProfilePage: React.FC = () => {
           <div className="p-3 rounded-2xl bg-slate-50 dark:bg-dark-elevated border border-light-border/60 dark:border-dark-border/60">
             <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mb-1">
               <Eye className="w-4 h-4" />
-              <span className="text-[11px] font-semibold">Engaged Posts</span>
+              <span className="text-[11px] font-semibold">Skills Listed</span>
             </div>
             <p className="text-lg font-bold text-light-text dark:text-dark-text">
-              {userPosts.filter((p) => (p.likesCount || 0) > 0).length}
+              {skills.length}
             </p>
           </div>
         </div>
@@ -193,6 +342,12 @@ export const ProfilePage: React.FC = () => {
       {/* Profile Section Tabs */}
       <Tabs
         tabs={[
+          {
+            id: 'journey',
+            label: 'Experience & Skills',
+            count: experiences.length + educations.length + skills.length,
+            icon: <Briefcase className="w-3.5 h-3.5" />,
+          },
           {
             id: 'posts',
             label: 'Posts',
@@ -207,19 +362,82 @@ export const ProfilePage: React.FC = () => {
           },
         ]}
         activeTab={activeTab}
-        onChange={(t) => setActiveTab(t as 'posts' | 'connections')}
+        onChange={(t) => setActiveTab(t as 'journey' | 'posts' | 'connections')}
       />
 
-      {/* TAB 1: POSTS */}
+      {/* TAB 1: JOURNEY (TIMELINE, EXPERIENCE, EDUCATION, SKILLS) */}
+      {activeTab === 'journey' && (
+        <div className="space-y-6 animate-fade-in">
+          {/* 1. Interactive Career Timeline */}
+          {(experiences.length > 0 || educations.length > 0) && (
+            <CareerTimeline experiences={experiences} educations={educations} />
+          )}
+
+          {/* 2. Work Experience Section */}
+          <ExperienceSection
+            experiences={experiences}
+            isSelf={isSelf}
+            onAdd={async (data) => {
+              await addExperienceMutation.mutateAsync(data);
+            }}
+            onUpdate={async (id, data) => {
+              await updateExperienceMutation.mutateAsync({ id, data });
+            }}
+            onDelete={async (id) => {
+              await deleteExperienceMutation.mutateAsync(id);
+            }}
+            isLoading={isExpLoading}
+          />
+
+          {/* 3. Education Section */}
+          <EducationSection
+            educations={educations}
+            isSelf={isSelf}
+            onAdd={async (data) => {
+              await addEducationMutation.mutateAsync(data);
+            }}
+            onUpdate={async (id, data) => {
+              await updateEducationMutation.mutateAsync({ id, data });
+            }}
+            onDelete={async (id) => {
+              await deleteEducationMutation.mutateAsync(id);
+            }}
+            isLoading={isEduLoading}
+          />
+
+          {/* 4. Skills & 1st-Degree Endorsements Section */}
+          <SkillsSection
+            skills={skills}
+            isSelf={isSelf}
+            isConnected={isConnected}
+            onAddSkill={async (data) => {
+              await addSkillMutation.mutateAsync(data);
+            }}
+            onRemoveSkill={async (id) => {
+              await removeSkillMutation.mutateAsync(id);
+            }}
+            onEndorseSkill={async (id) => {
+              await endorseSkillMutation.mutateAsync(id);
+            }}
+            onRemoveEndorsement={async (id) => {
+              await removeEndorsementMutation.mutateAsync(id);
+            }}
+            onViewEndorsers={(id) => profileApi.getSkillEndorsers(resolvedUserId, id)}
+            isLoading={isSkillsLoading}
+          />
+        </div>
+      )}
+
+      {/* TAB 2: POSTS */}
       {activeTab === 'posts' && (
-        <div className="space-y-4">
+        <div className="space-y-4 animate-fade-in">
           {isPostsLoading ? (
             <div className="space-y-4">
               <Skeleton className="h-36 w-full rounded-2xl" />
               <Skeleton className="h-36 w-full rounded-2xl" />
             </div>
           ) : userPosts.length > 0 ? (
-            <div className="space-y-4 animate-fade-in">
+            <div className="space-y-4">
               {userPosts.map((post) => (
                 <PostCard key={post.id} post={post} />
               ))}
@@ -240,7 +458,7 @@ export const ProfilePage: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 2: 1ST-DEGREE CIRCLE */}
+      {/* TAB 3: 1ST-DEGREE CIRCLE */}
       {activeTab === 'connections' && (
         <div className="space-y-4 animate-fade-in">
           {isConnectionsLoading ? (

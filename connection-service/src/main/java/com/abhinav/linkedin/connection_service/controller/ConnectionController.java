@@ -64,6 +64,13 @@ public class ConnectionController {
         return ResponseEntity.ok(connectionService.areConnected(currentUserId, userId));
     }
 
+    @GetMapping("/check/{userId1}/{userId2}")
+    public ResponseEntity<Boolean> areConnectedBetween(
+            @PathVariable Long userId1,
+            @PathVariable Long userId2) {
+        return ResponseEntity.ok(connectionService.areConnected(userId1, userId2));
+    }
+
     @GetMapping("/requests")
     public ResponseEntity<List<Person>> getPendingRequests(HttpServletRequest request) {
         Long currentUserId = requireUserId(request);
