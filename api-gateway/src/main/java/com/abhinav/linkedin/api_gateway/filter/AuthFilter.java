@@ -125,7 +125,7 @@ public class AuthFilter extends AbstractGatewayFilterFactory<AuthFilter.Config> 
 
     private boolean isPublicEndpoint(String path) {
         if (path == null) return false;
-        if (path.contains("/media/files/") || path.contains("/avatar/files/")) {
+        if (path.contains("/media/files/") || path.contains("/avatar/files/") || path.contains("/banner/files/")) {
             return true;
         }
         return OPEN_ENDPOINTS.stream().anyMatch(path::startsWith);

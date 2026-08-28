@@ -29,6 +29,17 @@ public class AvatarController {
     private static final String AVATAR_UPLOAD_DIR = "uploads/avatars";
     private static final String BANNER_UPLOAD_DIR = "uploads/banners";
 
+    @jakarta.annotation.PostConstruct
+    public void init() {
+        try {
+            Files.createDirectories(Paths.get(AVATAR_UPLOAD_DIR));
+            Files.createDirectories(Paths.get(BANNER_UPLOAD_DIR));
+            log.info("Initialized media storage directories: {}, {}", AVATAR_UPLOAD_DIR, BANNER_UPLOAD_DIR);
+        } catch (IOException e) {
+            log.error("Failed to initialize media storage directories: {}", e.getMessage());
+        }
+    }
+
     @PostMapping("/{userId}/avatar/upload")
     public ResponseEntity<UserDto> uploadAvatar(
             @PathVariable Long userId,

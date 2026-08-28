@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Users, FileText, Compass, Briefcase, Bookmark, TrendingUp, Sparkles } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -11,6 +11,7 @@ import { postApi } from '../../api/postApi';
 export const Sidebar: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [bannerError, setBannerError] = useState<boolean>(false);
 
   // Fetch real count of 1st degree connections
   const { data: firstConnections = [] } = useQuery({
@@ -61,16 +62,18 @@ export const Sidebar: React.FC = () => {
       <Card className="overflow-hidden border-light-border dark:border-dark-border">
         {/* Banner */}
         <div className="h-20 w-full relative bg-gradient-to-r from-brand-700 via-indigo-700 to-purple-800 overflow-hidden">
-          {user.bannerUrl ? (
+          {user.bannerUrl && !bannerError ? (
             <img
+              key={user.bannerUrl}
               src={user.bannerUrl}
-              alt="Banner"
+              alt=""
+              onError={() => setBannerError(true)}
               className="w-full h-full object-cover"
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-r from-brand-700 via-indigo-700 to-purple-800" />
           )}
-          <div className="absolute inset-0 bg-black/20" />
+          <div className="absolute inset-0 bg-black/20 pointer-events-none" />
         </div>
 
         {/* Profile Info */}

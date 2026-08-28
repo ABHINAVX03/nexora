@@ -49,6 +49,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [localBannerPreview, setLocalBannerPreview] = useState<string | null>(null);
   const [localAvatarPreview, setLocalAvatarPreview] = useState<string | null>(null);
+  const [bannerError, setBannerError] = useState<boolean>(false);
 
   // Fetch real-time active / online presence for this user
   const { data: presence } = useQuery<UserPresenceDto>({
@@ -183,11 +184,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     <div className="rounded-3xl border border-light-border dark:border-dark-border bg-white dark:bg-dark-card shadow-card dark:shadow-card-dark overflow-hidden">
       {/* Hero Cover Banner */}
       <div className="h-36 sm:h-48 w-full relative bg-gradient-to-r from-brand-800 via-indigo-900 to-purple-950 overflow-hidden group/banner">
-        {localBannerPreview || user.bannerUrl ? (
+        {(localBannerPreview || user.bannerUrl) && !bannerError ? (
           <img
             key={localBannerPreview || user.bannerUrl}
             src={localBannerPreview || user.bannerUrl}
-            alt={`${user.name}'s Banner`}
+            alt=""
+            onError={() => setBannerError(true)}
             className="w-full h-full object-cover"
           />
         ) : (
