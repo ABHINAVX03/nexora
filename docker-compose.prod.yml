@@ -119,6 +119,10 @@ services:
       - REDIS_PORT=6379
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+      - SPRING_MAIL_HOST=smtp.gmail.com
+      - SPRING_MAIL_PORT=587
+      - SPRING_MAIL_USERNAME=nexoranetworks.site@gmail.com
+      - SPRING_MAIL_PASSWORD=awkthbdcdeqjlhqi
     depends_on:
       - config-server
       - discovery-server
