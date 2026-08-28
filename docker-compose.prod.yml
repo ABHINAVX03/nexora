@@ -123,6 +123,10 @@ services:
       - SPRING_MAIL_PORT=587
       - SPRING_MAIL_USERNAME=nexoranetworks.site@gmail.com
       - SPRING_MAIL_PASSWORD=awkthbdcdeqjlhqi
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-AKIAZTI7ONPTZVCK4OM6}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-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}
+      - AWS_REGION=${AWS_REGION:-ap-south-1}
+      - AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME:-nexora-media-mumbai}
     depends_on:
       - config-server
       - discovery-server
@@ -149,6 +153,10 @@ services:
       - REDIS_PORT=6379
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-AKIAZTI7ONPTZVCK4OM6}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-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}
+      - AWS_REGION=${AWS_REGION:-ap-south-1}
+      - AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME:-nexora-media-mumbai}
     depends_on:
       - config-server
       - discovery-server

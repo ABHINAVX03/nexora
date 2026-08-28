@@ -2,6 +2,8 @@ package com.abhinav.linkedin.posts_service.controller;
 
 import com.abhinav.linkedin.posts_service.exception.BadRequestException;
 import com.abhinav.linkedin.posts_service.exception.ResourceNotFoundException;
+import com.abhinav.linkedin.posts_service.service.S3StorageService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -21,13 +23,16 @@ import java.util.*;
 
 @RestController
 @RequestMapping({"/posts/media", "/core/posts/media", "/media"})
+@RequiredArgsConstructor
 @Slf4j
 public class MediaController {
 
+    private final S3StorageService s3StorageService;
     private static final String UPLOAD_DIR = "uploads/posts";
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("jpg", "jpeg", "png", "webp", "gif");
 
-    public MediaController() {
+    @jakarta.annotation.PostConstruct
+    public void init() {
         File dir = new File(UPLOAD_DIR);
         if (!dir.exists()) {
             dir.mkdirs();
@@ -55,18 +60,15 @@ public class MediaController {
         }
 
         String safeFilename = UUID.randomUUID().toString().replace("-", "") + "." + extension;
-        Path targetPath = Paths.get(UPLOAD_DIR, safeFilename);
-
+        String fileUrl;
         try {
-            Files.createDirectories(targetPath.getParent());
-            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-            log.info("Saved post media to: {}", targetPath.toAbsolutePath());
+            fileUrl = s3StorageService.uploadFile("posts", safeFilename, file);
+            log.info("Uploaded post media with URL: {}", fileUrl);
         } catch (IOException e) {
-            log.error("Failed to save uploaded file: {}", e.getMessage(), e);
+            log.error("Failed to store media file: {}", e.getMessage(), e);
             throw new BadRequestException("Failed to store media file: " + e.getMessage());
         }
 
-        String fileUrl = "/api/v1/posts/media/files/" + safeFilename;
         return ResponseEntity.ok(Map.of("url", fileUrl));
     }
 

@@ -40,6 +40,7 @@ public class AuthService {
     private final KafkaTemplate<Long, Object> kafkaTemplate;
     private final OtpService otpService;
     private final EmailService emailService;
+    private final S3StorageService s3StorageService;
 
     private static final String AVATAR_UPLOAD_DIR = "uploads/avatars";
     private static final String BANNER_UPLOAD_DIR = "uploads/banners";
@@ -264,18 +265,15 @@ public class AuthService {
         }
 
         String safeFilename = "avatar_" + userId + "_" + UUID.randomUUID().toString().substring(0, 8) + "." + extension;
-        Path targetPath = Paths.get(AVATAR_UPLOAD_DIR, safeFilename);
-
+        String avatarUrl;
         try {
-            Files.createDirectories(targetPath.getParent());
-            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-            log.info("Saved avatar image for user {} to: {}", userId, targetPath.toAbsolutePath());
+            avatarUrl = s3StorageService.uploadFile("avatars", safeFilename, file);
+            log.info("Uploaded avatar for user {} with URL: {}", userId, avatarUrl);
         } catch (IOException e) {
             log.error("Failed to store avatar image: {}", e.getMessage(), e);
             throw new BadRequestException("Failed to save avatar image file: " + e.getMessage());
         }
 
-        String avatarUrl = "/api/v1/users/avatar/files/" + safeFilename;
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         user.setAvatarUrl(avatarUrl);
@@ -304,18 +302,15 @@ public class AuthService {
         }
 
         String safeFilename = "banner_" + userId + "_" + UUID.randomUUID().toString().substring(0, 8) + "." + extension;
-        Path targetPath = Paths.get(BANNER_UPLOAD_DIR, safeFilename);
-
+        String bannerUrl;
         try {
-            Files.createDirectories(targetPath.getParent());
-            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-            log.info("Saved banner image for user {} to: {}", userId, targetPath.toAbsolutePath());
+            bannerUrl = s3StorageService.uploadFile("banners", safeFilename, file);
+            log.info("Uploaded banner for user {} with URL: {}", userId, bannerUrl);
         } catch (IOException e) {
             log.error("Failed to store banner image: {}", e.getMessage(), e);
             throw new BadRequestException("Failed to save banner image file: " + e.getMessage());
         }
 
-        String bannerUrl = "/api/v1/users/banner/files/" + safeFilename;
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         user.setBannerUrl(bannerUrl);
