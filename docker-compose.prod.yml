@@ -261,6 +261,9 @@ services:
     container_name: nexora-frontend
     ports:
       - "${FRONTEND_PORT:-80}:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - api-gateway
     networks:
