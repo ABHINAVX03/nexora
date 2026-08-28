@@ -12,8 +12,10 @@ import { connectionApi } from '../api/connectionApi';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { UserDto } from '../types';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 export const DiscoverPage: React.FC = () => {
+  useDocumentTitle('Discover Members', 'Discover and connect with top engineers and creators on Nexora Network.');
   const { user: currentUser } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();

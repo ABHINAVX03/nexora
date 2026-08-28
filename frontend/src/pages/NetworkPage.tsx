@@ -18,8 +18,10 @@ import { Button } from '../components/ui/Button';
 import { useToast } from '../context/ToastContext';
 import { useChat } from '../context/ChatContext';
 import { Person } from '../types';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 export const NetworkPage: React.FC = () => {
+  useDocumentTitle('My Network', 'Manage your 1st-degree connections and pending invitations on Nexora.');
   const [activeTab, setActiveTab] = useState<'first-degree' | 'requests'>('first-degree');
   const [searchQuery, setSearchQuery] = useState('');
   const queryClient = useQueryClient();

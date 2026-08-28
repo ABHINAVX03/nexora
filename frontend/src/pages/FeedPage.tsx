@@ -9,8 +9,10 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { ErrorState } from '../components/ui/ErrorState';
 import { postApi } from '../api/postApi';
 import { Post, PostDto } from '../types';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 export const FeedPage: React.FC = () => {
+  useDocumentTitle('Home Feed', 'Explore the latest updates and technical discussions on Nexora Network.');
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTag = searchParams.get('tag');
 

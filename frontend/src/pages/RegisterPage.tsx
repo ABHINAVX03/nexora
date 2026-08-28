@@ -9,6 +9,7 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 const registerSchema = z
   .object({
@@ -25,6 +26,7 @@ const registerSchema = z
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export const RegisterPage: React.FC = () => {
+  useDocumentTitle('Create Profile', 'Join Nexora Network — the distributed social and professional platform.');
   const { signup } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();

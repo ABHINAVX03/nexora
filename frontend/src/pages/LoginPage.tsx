@@ -9,6 +9,7 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -19,6 +20,7 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export const LoginPage: React.FC = () => {
+  useDocumentTitle('Log In', 'Log in to your Nexora Network account to access your feed and messages.');
   const { login } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
