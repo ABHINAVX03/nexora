@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 
 @RestController
@@ -57,11 +58,12 @@ public class MediaController {
         Path targetPath = Paths.get(UPLOAD_DIR, safeFilename);
 
         try {
-            Files.copy(file.getInputStream(), targetPath);
+            Files.createDirectories(targetPath.getParent());
+            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
             log.info("Saved post media to: {}", targetPath.toAbsolutePath());
         } catch (IOException e) {
             log.error("Failed to save uploaded file: {}", e.getMessage(), e);
-            throw new BadRequestException("Failed to store media file");
+            throw new BadRequestException("Failed to store media file: " + e.getMessage());
         }
 
         String fileUrl = "/api/v1/posts/media/files/" + safeFilename;

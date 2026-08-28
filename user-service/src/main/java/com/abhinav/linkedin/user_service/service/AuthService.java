@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -168,20 +169,16 @@ public class AuthService {
             throw new BadRequestException("Unsupported image format. Allowed formats: JPG, PNG, WEBP, GIF");
         }
 
-        File dir = new File(AVATAR_UPLOAD_DIR);
-        if (!dir.exists()) {
-            dir.mkdirs();
-        }
-
         String safeFilename = "avatar_" + userId + "_" + UUID.randomUUID().toString().substring(0, 8) + "." + extension;
         Path targetPath = Paths.get(AVATAR_UPLOAD_DIR, safeFilename);
 
         try {
-            Files.copy(file.getInputStream(), targetPath);
+            Files.createDirectories(targetPath.getParent());
+            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
             log.info("Saved avatar image for user {} to: {}", userId, targetPath.toAbsolutePath());
         } catch (IOException e) {
             log.error("Failed to store avatar image: {}", e.getMessage(), e);
-            throw new BadRequestException("Failed to save avatar image file");
+            throw new BadRequestException("Failed to save avatar image file: " + e.getMessage());
         }
 
         String avatarUrl = "/api/v1/users/avatar/files/" + safeFilename;
