@@ -19,8 +19,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
            "LOWER(u.name) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "(u.headline IS NOT NULL AND LOWER(u.headline) LIKE LOWER(CONCAT('%', :query, '%'))) OR " +
-           "(u.location IS NOT NULL AND LOWER(u.location) LIKE LOWER(CONCAT('%', :query, '%'))) OR " +
-           "(CAST(u.id AS string) = :query) " +
-           "ORDER BY u.id ASC")
+           "(u.location IS NOT NULL AND LOWER(u.location) LIKE LOWER(CONCAT('%', :query, '%')))")
     List<User> searchUsers(@Param("query") String query);
 }

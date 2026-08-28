@@ -23,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -191,12 +192,24 @@ public class AuthService {
 
     public List<UserDto> searchUsers(String query) {
         log.info("Searching users with query: '{}'", query);
-        List<User> users;
         if (query == null || query.trim().isBlank()) {
-            users = userRepository.findAll();
-        } else {
-            users = userRepository.searchUsers(query.trim());
+            return userRepository.findAll().stream()
+                    .map(u -> modelMapper.map(u, UserDto.class))
+                    .collect(Collectors.toList());
         }
+
+        String trimmed = query.trim();
+        try {
+            Long id = Long.parseLong(trimmed);
+            Optional<User> byId = userRepository.findById(id);
+            if (byId.isPresent()) {
+                UserDto dto = modelMapper.map(byId.get(), UserDto.class);
+                return List.of(dto);
+            }
+        } catch (NumberFormatException ignored) {
+        }
+
+        List<User> users = userRepository.searchUsers(trimmed);
         return users.stream()
                 .map(u -> modelMapper.map(u, UserDto.class))
                 .collect(Collectors.toList());
