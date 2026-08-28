@@ -57,21 +57,23 @@ public class AuthService {
             return;
         }
 
-        try {
-            User viewer = userRepository.findById(viewerId).orElse(null);
-            String viewerName = viewer != null ? viewer.getName() : "A member";
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                User viewer = userRepository.findById(viewerId).orElse(null);
+                String viewerName = viewer != null ? viewer.getName() : "A member";
 
-            ProfileViewedEvent event = ProfileViewedEvent.builder()
-                    .viewerId(viewerId)
-                    .viewedUserId(viewedUserId)
-                    .viewerName(viewerName)
-                    .build();
+                ProfileViewedEvent event = ProfileViewedEvent.builder()
+                        .viewerId(viewerId)
+                        .viewedUserId(viewedUserId)
+                        .viewerName(viewerName)
+                        .build();
 
-            kafkaTemplate.send(profileViewedTopic, viewedUserId, event);
-            log.info("Published ProfileViewedEvent: viewer={} ({}) -> viewedUser={}", viewerId, viewerName, viewedUserId);
-        } catch (Exception e) {
-            log.error("Failed to publish ProfileViewedEvent: {}", e.getMessage());
-        }
+                kafkaTemplate.send(profileViewedTopic, viewedUserId, event);
+                log.info("Published ProfileViewedEvent: viewer={} ({}) -> viewedUser={}", viewerId, viewerName, viewedUserId);
+            } catch (Exception e) {
+                log.warn("Non-fatal: Failed to publish ProfileViewedEvent: {}", e.getMessage());
+            }
+        });
     }
 
     public UserDto signup(SignUpRequestDto signUpRequestDto) {

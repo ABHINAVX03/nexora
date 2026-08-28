@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Compass, Search, UserPlus, Users, ArrowRight } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
+import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Avatar } from '../components/ui/Avatar';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -22,12 +22,19 @@ export const DiscoverPage: React.FC = () => {
   const [activeQuery, setActiveQuery] = useState('');
   const [sentMap, setSentMap] = useState<Record<number, boolean>>({});
 
+  // Auto-debounce search query on keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setActiveQuery(searchQuery.trim());
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   // Query real users from GET /api/v1/users?query=...
   const {
     data: searchResults = [],
     isLoading,
     isFetching,
-    refetch,
   } = useQuery<UserDto[]>({
     queryKey: ['search-users', activeQuery],
     queryFn: async () => {
@@ -67,7 +74,7 @@ export const DiscoverPage: React.FC = () => {
           Discover & Connect
         </h2>
         <p className="text-xs text-light-muted dark:text-dark-muted mt-0.5">
-          Search and connect with professionals across the Nexora network by name or email
+          Search and connect with professionals across the Nexora network by name, headline, or keywords
         </p>
       </div>
 
@@ -80,7 +87,7 @@ export const DiscoverPage: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search members by name, email, or keywords..."
+              placeholder="Search members by name, keyword, or User ID..."
               className="w-full h-11 pl-10 pr-4 text-xs rounded-xl bg-white dark:bg-dark-card border border-light-border dark:border-dark-border text-light-text dark:text-dark-text placeholder:text-light-muted dark:placeholder:text-dark-muted focus:outline-none focus:ring-1 focus:ring-brand-500 shadow-subtle"
             />
           </div>
@@ -116,13 +123,13 @@ export const DiscoverPage: React.FC = () => {
                       className="flex items-center gap-3.5 cursor-pointer flex-1 min-w-0"
                       onClick={() => navigate(`/profile/${targetUser.id}`)}
                     >
-                      <Avatar name={targetUser.name} size="lg" />
+                      <Avatar name={targetUser.name} src={targetUser.avatarUrl} size="lg" />
                       <div className="min-w-0">
                         <h4 className="text-sm font-bold text-light-text dark:text-dark-text hover:text-brand-600 dark:hover:text-brand-400 truncate">
                           {targetUser.name}
                         </h4>
                         <p className="text-xs text-light-muted dark:text-dark-muted truncate">
-                          {targetUser.headline || targetUser.email}
+                          {targetUser.headline || 'Member @ Nexora'}
                         </p>
                         <p className="text-[11px] text-light-muted dark:text-dark-muted">
                           Member ID: #{targetUser.id}
