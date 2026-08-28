@@ -1,6 +1,7 @@
 import React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { RefreshCw, MessageSquare } from 'lucide-react';
+import { RefreshCw, MessageSquare, Hash, X } from 'lucide-react';
 import { PostComposer } from '../components/posts/PostComposer';
 import { PostCard } from '../components/posts/PostCard';
 import { PostCardSkeleton } from '../components/ui/Skeleton';
@@ -10,8 +11,11 @@ import { postApi } from '../api/postApi';
 import { Post, PostDto } from '../types';
 
 export const FeedPage: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentTag = searchParams.get('tag');
+
   const {
-    data: posts = [],
+    data: allPosts = [],
     isLoading,
     isError,
     refetch,
@@ -32,15 +36,47 @@ export const FeedPage: React.FC = () => {
     staleTime: 5000,
   });
 
+  // Filter posts if tag is present in URL
+  const displayedPosts = currentTag
+    ? allPosts.filter((post) =>
+        post.content?.toLowerCase().includes(`#${currentTag.toLowerCase()}`)
+      )
+    : allPosts;
+
+  const clearTagFilter = () => {
+    const params = new URLSearchParams(searchParams);
+    params.delete('tag');
+    setSearchParams(params);
+  };
+
   return (
     <div className="space-y-5">
       {/* Top Post Creator */}
       <PostComposer onPostCreated={() => refetch()} />
 
+      {/* Active Hashtag Filter Banner */}
+      {currentTag && (
+        <div className="flex items-center justify-between p-3 rounded-2xl bg-brand-50/80 dark:bg-brand-950/40 border border-brand-500/20">
+          <div className="flex items-center gap-2 text-xs font-semibold text-brand-700 dark:text-brand-300">
+            <Hash className="w-4 h-4 text-brand-500" />
+            <span>
+              Showing posts tagged with <strong className="text-brand-600 dark:text-brand-400">#{currentTag}</strong>
+            </span>
+          </div>
+          <button
+            onClick={clearTagFilter}
+            className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg bg-brand-100 dark:bg-brand-900/60 text-brand-700 dark:text-brand-300 hover:bg-brand-200 dark:hover:bg-brand-800/60 transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+            <span>Clear Filter</span>
+          </button>
+        </div>
+      )}
+
       {/* Feed Stream Header */}
       <div className="flex items-center justify-between gap-2 px-1">
         <h3 className="text-xs font-bold uppercase tracking-wider text-light-muted dark:text-dark-muted">
-          Your Network Stream ({posts.length})
+          {currentTag ? `Topic Stream (#${currentTag})` : 'Your Network Stream'} ({displayedPosts.length})
         </h3>
 
         {/* Refetch button */}
@@ -72,20 +108,26 @@ export const FeedPage: React.FC = () => {
       )}
 
       {/* Posts Stream */}
-      {!isLoading && !isError && posts.length > 0 && (
+      {!isLoading && !isError && displayedPosts.length > 0 && (
         <div className="space-y-4 animate-fade-in">
-          {posts.map((post) => (
+          {displayedPosts.map((post) => (
             <PostCard key={post.id} post={post} />
           ))}
         </div>
       )}
 
       {/* Empty State */}
-      {!isLoading && !isError && posts.length === 0 && (
+      {!isLoading && !isError && displayedPosts.length === 0 && (
         <EmptyState
           icon={<MessageSquare className="w-7 h-7" />}
-          title="Your feed is waiting for its first story"
-          description="Create a post above or connect with colleagues in your network to see their updates here."
+          title={currentTag ? `No posts found for #${currentTag}` : "Your feed is waiting for its first story"}
+          description={
+            currentTag
+              ? "Try creating a post with this hashtag or clear the filter to see all posts."
+              : "Create a post above or connect with colleagues in your network to see their updates here."
+          }
+          actionLabel={currentTag ? "Clear Filter" : undefined}
+          onAction={currentTag ? clearTagFilter : undefined}
         />
       )}
     </div>

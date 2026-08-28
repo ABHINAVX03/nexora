@@ -11,6 +11,7 @@ import { DiscoverPage } from '../pages/DiscoverPage';
 import { NotificationsPage } from '../pages/NotificationsPage';
 import { ProfilePage } from '../pages/ProfilePage';
 import { PostDetailPage } from '../pages/PostDetailPage';
+import { SavedPostsPage } from '../pages/SavedPostsPage';
 import { SettingsPage } from '../pages/SettingsPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { useAuth } from '../context/AuthContext';
@@ -111,6 +112,10 @@ export const router = createBrowserRouter([
       {
         path: '/discover',
         element: <DiscoverPage />,
+      },
+      {
+        path: '/saved',
+        element: <SavedPostsPage />,
       },
       {
         path: '/notifications',

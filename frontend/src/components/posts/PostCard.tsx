@@ -10,6 +10,7 @@ import {
   X,
   Save,
   MessageSquare,
+  Bookmark,
 } from 'lucide-react';
 import { Post, UserDto, CommentDto, LikeStatusDto } from '../../types';
 import { Avatar } from '../ui/Avatar';
@@ -37,6 +38,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
   const [hasLiked, setHasLiked] = useState<boolean>(post.hasLiked ?? false);
   const [likesCount, setLikesCount] = useState<number>(post.likesCount ?? 0);
+  const [isBookmarked, setIsBookmarked] = useState<boolean>(false);
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [isCommentsOpen, setIsCommentsOpen] = useState<boolean>(false);
@@ -81,6 +83,26 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
     }
   }, [likeStatus]);
 
+  // Fetch bookmark status for current user
+  const { data: bookmarkStatus } = useQuery<boolean>({
+    queryKey: ['post-bookmark-status', post.id],
+    queryFn: async () => {
+      try {
+        return await postApi.isPostBookmarked(post.id);
+      } catch {
+        return false;
+      }
+    },
+    staleTime: 10000,
+    enabled: !!user,
+  });
+
+  useEffect(() => {
+    if (bookmarkStatus !== undefined) {
+      setIsBookmarked(bookmarkStatus);
+    }
+  }, [bookmarkStatus]);
+
   // Fetch comment count for this post
   const { data: comments = [] } = useQuery<CommentDto[]>({
     queryKey: ['post-comments', post.id],
@@ -104,7 +126,6 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
       return await postApi.toggleLike(post.id);
     },
     onMutate: () => {
-      // Optimistic UI update: +1 or -1
       setHasLiked((prev) => {
         const next = !prev;
         setLikesCount((cnt) => (next ? cnt + 1 : Math.max(0, cnt - 1)));
@@ -127,7 +148,33 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
     },
   });
 
-  // Update post mutation (PUT /api/v1/posts/{postId})
+  // Toggle Bookmark mutation
+  const toggleBookmarkMutation = useMutation({
+    mutationFn: async () => {
+      return await postApi.toggleBookmark(post.id);
+    },
+    onMutate: () => {
+      setIsBookmarked((prev) => !prev);
+    },
+    onSuccess: (data) => {
+      setIsBookmarked(data.bookmarked);
+      queryClient.invalidateQueries({ queryKey: ['saved-posts'] });
+      queryClient.setQueryData(['post-bookmark-status', post.id], data.bookmarked);
+      showToast(
+        'success',
+        data.bookmarked ? 'Post Saved' : 'Post Removed',
+        data.bookmarked
+          ? 'Added to your Saved Items.'
+          : 'Removed from your Saved Items.'
+      );
+    },
+    onError: () => {
+      setIsBookmarked((prev) => !prev);
+      showToast('error', 'Error', 'Failed to update bookmark.');
+    },
+  });
+
+  // Update post mutation
   const updatePostMutation = useMutation({
     mutationFn: async (newText: string) => {
       return await postApi.updatePost(post.id, { content: newText, mediaUrl: post.mediaUrl });
@@ -153,6 +200,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['feed-posts'] });
       queryClient.invalidateQueries({ queryKey: ['user-posts'] });
+      queryClient.invalidateQueries({ queryKey: ['saved-posts'] });
       showToast('success', 'Post Deleted', 'Your post was removed.');
     },
     onError: (err: any) => {
@@ -174,6 +222,29 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
     e.preventDefault();
     if (!editContent.trim()) return;
     updatePostMutation.mutate(editContent.trim());
+  };
+
+  // Render text with clickable #hashtags
+  const renderFormattedContent = (content: string) => {
+    const parts = content.split(/(#[a-zA-Z0-9_]+)/g);
+    return parts.map((part, index) => {
+      if (part.startsWith('#')) {
+        const tag = part.substring(1);
+        return (
+          <span
+            key={index}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/feed?tag=${tag}`);
+            }}
+            className="text-brand-600 dark:text-brand-400 font-semibold hover:underline cursor-pointer transition-colors"
+          >
+            {part}
+          </span>
+        );
+      }
+      return <span key={index}>{part}</span>;
+    });
   };
 
   return (
@@ -214,6 +285,17 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
               </button>
             }
             items={[
+              {
+                label: isBookmarked ? 'Remove bookmark' : 'Save post',
+                icon: (
+                  <Bookmark
+                    className={`w-4 h-4 ${
+                      isBookmarked ? 'text-amber-500 fill-amber-500' : ''
+                    }`}
+                  />
+                ),
+                onClick: () => toggleBookmarkMutation.mutate(),
+              },
               {
                 label: 'Copy link to post',
                 icon: <Share2 className="w-4 h-4" />,
@@ -282,7 +364,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
           <div className="space-y-3">
             {post.content && (
               <p className="text-sm text-light-text dark:text-dark-text whitespace-pre-line leading-relaxed">
-                {post.content}
+                {renderFormattedContent(post.content)}
               </p>
             )}
 
@@ -303,7 +385,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
         {/* Action Buttons Bar */}
         <div className="flex items-center justify-between pt-2 border-t border-light-border/60 dark:border-dark-border/60">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 sm:gap-2">
             {/* Like Toggle Button (+1 / -1) */}
             <button
               onClick={() => toggleLikeMutation.mutate()}
@@ -351,14 +433,34 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
             </button>
           </div>
 
-          {/* Share button */}
-          <button
-            onClick={handleShare}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-light-muted dark:text-dark-muted hover:bg-slate-100 dark:hover:bg-dark-elevated hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
-          >
-            {isCopied ? <Check className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4" />}
-            <span>{isCopied ? 'Copied' : 'Share'}</span>
-          </button>
+          <div className="flex items-center gap-1">
+            {/* Bookmark Toggle Button */}
+            <button
+              onClick={() => toggleBookmarkMutation.mutate()}
+              title={isBookmarked ? 'Saved to Bookmarks' : 'Save post'}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                isBookmarked
+                  ? 'text-amber-600 dark:text-amber-400 bg-amber-50/80 dark:bg-amber-950/40'
+                  : 'text-light-muted dark:text-dark-muted hover:bg-slate-100 dark:hover:bg-dark-elevated hover:text-amber-500'
+              }`}
+            >
+              <Bookmark
+                className={`w-4 h-4 transition-transform active:scale-125 ${
+                  isBookmarked ? 'fill-amber-500 text-amber-500' : ''
+                }`}
+              />
+              <span className="hidden sm:inline">{isBookmarked ? 'Saved' : 'Save'}</span>
+            </button>
+
+            {/* Share button */}
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-light-muted dark:text-dark-muted hover:bg-slate-100 dark:hover:bg-dark-elevated hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+            >
+              {isCopied ? <Check className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4" />}
+              <span className="hidden sm:inline">{isCopied ? 'Copied' : 'Share'}</span>
+            </button>
+          </div>
         </div>
 
         {/* Expandable Comment Section */}

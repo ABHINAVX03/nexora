@@ -5,9 +5,11 @@ import com.abhinav.linkedin.posts_service.dto.PersonDto;
 import com.abhinav.linkedin.posts_service.dto.PostCreateRequestDto;
 import com.abhinav.linkedin.posts_service.dto.PostDto;
 import com.abhinav.linkedin.posts_service.entity.Post;
+import com.abhinav.linkedin.posts_service.entity.PostBookmark;
 import com.abhinav.linkedin.posts_service.event.PostCreatedEvent;
 import com.abhinav.linkedin.posts_service.exception.ForbiddenException;
 import com.abhinav.linkedin.posts_service.exception.ResourceNotFoundException;
+import com.abhinav.linkedin.posts_service.repository.PostBookmarkRepository;
 import com.abhinav.linkedin.posts_service.repository.PostLikeRepository;
 import com.abhinav.linkedin.posts_service.repository.PostRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -32,6 +34,7 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final PostLikeRepository postLikeRepository;
+    private final PostBookmarkRepository postBookmarkRepository;
     private final ConnectionClient connectionClient;
     private final ModelMapper modelMapper;
     private final KafkaTemplate<Long, PostCreatedEvent> kafkaTemplate;
@@ -112,6 +115,7 @@ public class PostService {
             throw new ForbiddenException("You are not authorized to delete this post");
         }
 
+        postBookmarkRepository.deleteByPostId(postId);
         postLikeRepository.deleteByPostId(postId);
         postRepository.delete(post);
         log.info("Successfully deleted post {}", postId);
@@ -153,9 +157,6 @@ public class PostService {
             }
         }
 
-        // Partition posts:
-        // 1. Posts by connections and self (sorted newest first)
-        // 2. Other community posts (sorted newest first)
         List<Post> priorityPosts = new ArrayList<>();
         List<Post> communityPosts = new ArrayList<>();
 
@@ -181,6 +182,41 @@ public class PostService {
         List<Post> allPosts = postRepository.findAllByOrderByCreatedAtDesc();
         return allPosts.stream()
                 .map(post -> modelMapper.map(post, PostDto.class))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public boolean toggleBookmark(Long postId, Long currentUserId) {
+        log.info("Toggling bookmark on post {} for user {}", postId, currentUserId);
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
+
+        Optional<PostBookmark> existing = postBookmarkRepository.findByUserIdAndPostId(currentUserId, postId);
+        if (existing.isPresent()) {
+            postBookmarkRepository.deleteByUserIdAndPostId(currentUserId, postId);
+            log.info("Removed bookmark for post {} by user {}", postId, currentUserId);
+            return false;
+        } else {
+            PostBookmark bookmark = PostBookmark.builder()
+                    .userId(currentUserId)
+                    .post(post)
+                    .build();
+            postBookmarkRepository.save(bookmark);
+            log.info("Saved bookmark for post {} by user {}", postId, currentUserId);
+            return true;
+        }
+    }
+
+    public boolean isPostBookmarked(Long postId, Long currentUserId) {
+        if (currentUserId == null || postId == null) return false;
+        return postBookmarkRepository.existsByUserIdAndPostId(currentUserId, postId);
+    }
+
+    public List<PostDto> getBookmarkedPosts(Long currentUserId) {
+        log.debug("Retrieving bookmarked posts for user: {}", currentUserId);
+        List<PostBookmark> bookmarks = postBookmarkRepository.findByUserIdWithPost(currentUserId);
+        return bookmarks.stream()
+                .map(b -> modelMapper.map(b.getPost(), PostDto.class))
                 .collect(Collectors.toList());
     }
 

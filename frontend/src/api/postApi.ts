@@ -61,4 +61,19 @@ export const postApi = {
     const response = await apiClient.get<LikeStatusDto>(`/likes/${postId}/status`);
     return response.data;
   },
+
+  toggleBookmark: async (postId: number): Promise<{ bookmarked: boolean; postId: number }> => {
+    const response = await apiClient.post<{ bookmarked: boolean; postId: number }>(`/posts/${postId}/bookmark`);
+    return response.data;
+  },
+
+  getBookmarkedPosts: async (): Promise<PostDto[]> => {
+    const response = await apiClient.get<PostDto[]>('/posts/bookmarks');
+    return response.data;
+  },
+
+  isPostBookmarked: async (postId: number): Promise<boolean> => {
+    const response = await apiClient.get<{ bookmarked: boolean }>(`/posts/${postId}/is-bookmarked`);
+    return response.data.bookmarked;
+  },
 };

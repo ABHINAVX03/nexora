@@ -1,13 +1,21 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { UserPlus, ShieldCheck, Clock, ArrowRight, Check } from 'lucide-react';
+import { UserPlus, ShieldCheck, Clock, Hash, TrendingUp } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
 import { useToast } from '../../context/ToastContext';
 import { connectionApi } from '../../api/connectionApi';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Person } from '../../types';
+
+const TRENDING_TOPICS = [
+  { tag: 'microservices', postsCount: '1.2k' },
+  { tag: 'java21', postsCount: '980' },
+  { tag: 'kafka', postsCount: '840' },
+  { tag: 'cloud', postsCount: '650' },
+  { tag: 'react', postsCount: '520' },
+  { tag: 'nexora', postsCount: '340' },
+];
 
 export const RightRail: React.FC = () => {
   const { showToast } = useToast();
@@ -86,6 +94,35 @@ export const RightRail: React.FC = () => {
               Send Request
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+      {/* Trending Topics & Hashtags */}
+      <Card className="border-light-border dark:border-dark-border">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xs uppercase tracking-wider text-light-muted dark:text-dark-muted font-bold flex items-center gap-1.5">
+            <TrendingUp className="w-3.5 h-3.5 text-brand-500" />
+            Trending Topics
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-2 pt-0 space-y-1">
+          {TRENDING_TOPICS.map((item) => (
+            <button
+              key={item.tag}
+              onClick={() => navigate(`/feed?tag=${item.tag}`)}
+              className="w-full flex items-center justify-between p-2 rounded-xl text-left hover:bg-slate-50 dark:hover:bg-dark-elevated transition-colors group"
+            >
+              <div className="flex items-center gap-2">
+                <Hash className="w-3.5 h-3.5 text-brand-500 group-hover:scale-110 transition-transform" />
+                <span className="text-xs font-semibold text-light-text dark:text-dark-text group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
+                  {item.tag}
+                </span>
+              </div>
+              <span className="text-[10px] font-medium text-light-muted dark:text-dark-muted">
+                {item.postsCount} posts
+              </span>
+            </button>
+          ))}
         </CardContent>
       </Card>
 

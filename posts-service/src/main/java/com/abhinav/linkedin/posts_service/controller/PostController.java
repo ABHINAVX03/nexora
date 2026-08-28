@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping({"/core", "/posts"})
@@ -102,5 +103,30 @@ public class PostController {
         Long currentUserId = requireUserId(request);
         List<PostDto> feed = postService.getFeed(currentUserId);
         return ResponseEntity.ok(feed);
+    }
+
+    @PostMapping("/{postId}/bookmark")
+    public ResponseEntity<Map<String, Object>> toggleBookmark(
+            @PathVariable Long postId,
+            HttpServletRequest request) {
+        Long currentUserId = requireUserId(request);
+        boolean isBookmarked = postService.toggleBookmark(postId, currentUserId);
+        return ResponseEntity.ok(Map.of("bookmarked", isBookmarked, "postId", postId));
+    }
+
+    @GetMapping("/bookmarks")
+    public ResponseEntity<List<PostDto>> getBookmarkedPosts(HttpServletRequest request) {
+        Long currentUserId = requireUserId(request);
+        List<PostDto> bookmarks = postService.getBookmarkedPosts(currentUserId);
+        return ResponseEntity.ok(bookmarks);
+    }
+
+    @GetMapping("/{postId}/is-bookmarked")
+    public ResponseEntity<Map<String, Boolean>> isPostBookmarked(
+            @PathVariable Long postId,
+            HttpServletRequest request) {
+        Long currentUserId = extractUserId(request);
+        boolean isBookmarked = postService.isPostBookmarked(postId, currentUserId);
+        return ResponseEntity.ok(Map.of("bookmarked", isBookmarked));
     }
 }

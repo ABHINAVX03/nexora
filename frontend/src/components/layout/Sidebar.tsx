@@ -1,22 +1,51 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Users, FileText, Compass, MapPin, Briefcase } from 'lucide-react';
+import { Users, FileText, Compass, Briefcase, Bookmark, TrendingUp, Sparkles } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Avatar } from '../ui/Avatar';
 import { Card } from '../ui/Card';
 import { useQuery } from '@tanstack/react-query';
 import { connectionApi } from '../../api/connectionApi';
+import { postApi } from '../../api/postApi';
 
 export const Sidebar: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Fetch real count of 1st degree connections from backend
+  // Fetch real count of 1st degree connections
   const { data: firstConnections = [] } = useQuery({
     queryKey: ['my-first-degree-connections'],
     queryFn: async () => {
       try {
         return await connectionApi.getMyFirstConnections();
+      } catch {
+        return [];
+      }
+    },
+    staleTime: 10000,
+  });
+
+  // Fetch real count of user's own posts
+  const { data: myPosts = [] } = useQuery({
+    queryKey: ['my-posts-count', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      try {
+        return await postApi.getUserPosts(user.id);
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!user?.id,
+    staleTime: 15000,
+  });
+
+  // Fetch saved / bookmarked posts count
+  const { data: savedPosts = [] } = useQuery({
+    queryKey: ['saved-posts'],
+    queryFn: async () => {
+      try {
+        return await postApi.getBookmarkedPosts();
       } catch {
         return [];
       }
@@ -38,10 +67,11 @@ export const Sidebar: React.FC = () => {
           <div className="-mt-10 mb-3 flex justify-center">
             <Avatar
               name={user.name}
+              src={user.avatarUrl}
               size="xl"
               isOnline={true}
               onClick={() => navigate(`/profile/${user.id}`)}
-              className="ring-4 ring-white dark:ring-dark-card shadow-card"
+              className="ring-4 ring-white dark:ring-dark-card shadow-card cursor-pointer"
             />
           </div>
 
@@ -53,25 +83,38 @@ export const Sidebar: React.FC = () => {
           </h3>
 
           <p className="text-xs text-light-muted dark:text-dark-muted mt-1 truncate">
-            {user.email}
+            {user.headline || user.email}
           </p>
 
-          <p className="text-[11px] text-light-muted dark:text-dark-muted mt-0.5">
-            Member ID: #{user.id}
+          <p className="text-[11px] text-light-muted dark:text-dark-muted mt-0.5 font-mono">
+            ID: #{user.id}
           </p>
 
-          {/* Network Stat */}
-          <div className="mt-4 pt-3 border-t border-light-border/60 dark:border-dark-border/60">
+          {/* Member Analytics Highlights */}
+          <div className="mt-4 pt-3 border-t border-light-border/60 dark:border-dark-border/60 space-y-2">
             <Link
               to="/network"
-              className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-dark-elevated transition-colors text-xs"
+              className="flex items-center justify-between p-1.5 px-2 rounded-xl hover:bg-slate-50 dark:hover:bg-dark-elevated transition-colors text-xs"
             >
               <div className="flex items-center gap-2 text-light-muted dark:text-dark-muted">
-                <Users className="w-4 h-4 text-brand-500" />
-                <span className="font-medium">1st-Degree Connections</span>
+                <Users className="w-3.5 h-3.5 text-brand-500" />
+                <span className="font-medium">Connections</span>
               </div>
               <span className="font-bold text-brand-600 dark:text-brand-400">
                 {firstConnections.length}
+              </span>
+            </Link>
+
+            <Link
+              to={`/profile/${user.id}`}
+              className="flex items-center justify-between p-1.5 px-2 rounded-xl hover:bg-slate-50 dark:hover:bg-dark-elevated transition-colors text-xs"
+            >
+              <div className="flex items-center gap-2 text-light-muted dark:text-dark-muted">
+                <FileText className="w-3.5 h-3.5 text-indigo-500" />
+                <span className="font-medium">Posts Published</span>
+              </div>
+              <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                {myPosts.length}
               </span>
             </Link>
           </div>
@@ -81,24 +124,41 @@ export const Sidebar: React.FC = () => {
       {/* Quick Access Navigation */}
       <Card className="p-3 border-light-border dark:border-dark-border space-y-1">
         <Link
+          to="/saved"
+          className="flex items-center justify-between p-2 rounded-xl text-xs font-medium text-light-muted dark:text-dark-muted hover:text-light-text dark:hover:text-dark-text hover:bg-slate-50 dark:hover:bg-dark-elevated transition-colors group"
+        >
+          <div className="flex items-center gap-2.5">
+            <Bookmark className="w-4 h-4 text-amber-500 fill-amber-500/20 group-hover:fill-amber-500 transition-colors" />
+            <span>Saved Posts</span>
+          </div>
+          {savedPosts.length > 0 && (
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-300 font-bold">
+              {savedPosts.length}
+            </span>
+          )}
+        </Link>
+
+        <Link
           to={`/profile/${user.id}`}
           className="flex items-center gap-2.5 p-2 rounded-xl text-xs font-medium text-light-muted dark:text-dark-muted hover:text-light-text dark:hover:text-dark-text hover:bg-slate-50 dark:hover:bg-dark-elevated transition-colors"
         >
           <Briefcase className="w-4 h-4 text-indigo-500" />
-          <span>My Profile & Posts</span>
+          <span>My Profile</span>
         </Link>
+
         <Link
           to="/network"
           className="flex items-center gap-2.5 p-2 rounded-xl text-xs font-medium text-light-muted dark:text-dark-muted hover:text-light-text dark:hover:text-dark-text hover:bg-slate-50 dark:hover:bg-dark-elevated transition-colors"
         >
           <Users className="w-4 h-4 text-emerald-500" />
-          <span>Manage Connections</span>
+          <span>Manage Network</span>
         </Link>
+
         <Link
           to="/discover"
           className="flex items-center gap-2.5 p-2 rounded-xl text-xs font-medium text-light-muted dark:text-dark-muted hover:text-light-text dark:hover:text-dark-text hover:bg-slate-50 dark:hover:bg-dark-elevated transition-colors"
         >
-          <Compass className="w-4 h-4 text-amber-500" />
+          <Compass className="w-4 h-4 text-brand-500" />
           <span>Connect by User ID</span>
         </Link>
       </Card>
