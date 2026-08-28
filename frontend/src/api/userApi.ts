@@ -18,11 +18,8 @@ export const userApi = {
   uploadAvatar: async (userId: number, file: File): Promise<UserDto> => {
     const formData = new FormData();
     formData.append('file', file);
-    const response = await apiClient.post<UserDto>(`/users/${userId}/avatar/upload`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    // Let browser and Axios manage boundary injection automatically
+    const response = await apiClient.post<UserDto>(`/users/${userId}/avatar/upload`, formData);
     return response.data;
   },
 

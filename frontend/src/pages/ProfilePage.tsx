@@ -160,7 +160,7 @@ export const ProfilePage: React.FC = () => {
           <div className="p-3 rounded-2xl bg-slate-50 dark:bg-dark-elevated border border-light-border/60 dark:border-dark-border/60">
             <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 mb-1">
               <FileText className="w-4 h-4" />
-              <span className="text-[11px] font-semibold">Stories Published</span>
+              <span className="text-[11px] font-semibold">Posts Published</span>
             </div>
             <p className="text-lg font-bold text-light-text dark:text-dark-text">
               {userPosts.length}
@@ -168,22 +168,22 @@ export const ProfilePage: React.FC = () => {
           </div>
 
           <div className="p-3 rounded-2xl bg-slate-50 dark:bg-dark-elevated border border-light-border/60 dark:border-dark-border/60">
-            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mb-1">
-              <Eye className="w-4 h-4" />
-              <span className="text-[11px] font-semibold">Network Reach</span>
+            <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 mb-1">
+              <Heart className="w-4 h-4" />
+              <span className="text-[11px] font-semibold">Reactions Received</span>
             </div>
             <p className="text-lg font-bold text-light-text dark:text-dark-text">
-              {Math.max(1, userConnections.length * 5 + userPosts.length * 12)}
+              {userPosts.reduce((acc, p) => acc + (p.likesCount || 0), 0)}
             </p>
           </div>
 
           <div className="p-3 rounded-2xl bg-slate-50 dark:bg-dark-elevated border border-light-border/60 dark:border-dark-border/60">
-            <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 mb-1">
-              <Heart className="w-4 h-4" />
-              <span className="text-[11px] font-semibold">Post Reach</span>
+            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mb-1">
+              <Eye className="w-4 h-4" />
+              <span className="text-[11px] font-semibold">Engaged Posts</span>
             </div>
             <p className="text-lg font-bold text-light-text dark:text-dark-text">
-              {userPosts.length > 0 ? `${userPosts.length * 8} views` : '0 views'}
+              {userPosts.filter((p) => (p.likesCount || 0) > 0).length}
             </p>
           </div>
         </div>

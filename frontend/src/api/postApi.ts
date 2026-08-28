@@ -20,11 +20,8 @@ export const postApi = {
   uploadMedia: async (file: File): Promise<{ url: string }> => {
     const formData = new FormData();
     formData.append('file', file);
-    const response = await apiClient.post<{ url: string }>('/posts/media/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    // Let browser and Axios manage boundary injection automatically
+    const response = await apiClient.post<{ url: string }>('/posts/media/upload', formData);
     return response.data;
   },
 

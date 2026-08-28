@@ -65,7 +65,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     onSuccess: (updatedDto) => {
       updateCurrentUser({ avatarUrl: updatedDto.avatarUrl });
       queryClient.invalidateQueries({ queryKey: ['user-profile', user.id] });
-      queryClient.invalidateQueries({ queryKey: ['user-info', user.id] });
+      queryClient.invalidateQueries({ queryKey: ['user-info'] });
+      queryClient.invalidateQueries({ queryKey: ['search-users'] });
+      queryClient.invalidateQueries({ queryKey: ['feed-posts'] });
+      queryClient.invalidateQueries({ queryKey: ['user-posts'] });
       refreshUserProfile();
       showToast('success', 'Photo Updated', 'Your profile picture has been updated!');
     },

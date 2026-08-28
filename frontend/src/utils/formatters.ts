@@ -3,10 +3,23 @@
 export function formatTimeAgo(dateString?: string | Date): string {
   if (!dateString) return 'just now';
   
-  const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+  // Normalize string to UTC ISO-8601 if no timezone offset is explicitly provided
+  let date: Date;
+  if (typeof dateString === 'string') {
+    let normalized = dateString.trim();
+    // If backend returns "YYYY-MM-DDTHH:mm:ss" without trailing Z or +/- offset, append Z for UTC
+    if (!normalized.endsWith('Z') && !normalized.includes('+') && !normalized.match(/-\d{2}:\d{2}$/)) {
+      normalized = normalized + 'Z';
+    }
+    date = new Date(normalized);
+  } else {
+    date = dateString;
+  }
+
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
+  // Handle minor clock skews or immediate creation
   if (isNaN(diffInSeconds) || diffInSeconds < 5) return 'just now';
   if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
   

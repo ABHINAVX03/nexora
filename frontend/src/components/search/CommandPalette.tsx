@@ -17,7 +17,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
   const [isSearching, setIsSearching] = useState(false);
   const navigate = useNavigate();
 
-  // Search real backend users via searchUsers(query) or getUserById(id)
+  // Search real backend users via searchUsers(query)
   useEffect(() => {
     const trimmed = query.trim();
     if (!trimmed) {
@@ -29,20 +29,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
     const timer = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const idNum = parseInt(trimmed, 10);
-        if (!isNaN(idNum) && idNum > 0) {
-          try {
-            const single = await userApi.getUserById(idNum);
-            setSearchResults([single]);
-            setIsSearching(false);
-            return;
-          } catch {
-            // Fall through to text search
-          }
-        }
-
         const users = await userApi.searchUsers(trimmed);
-        setSearchResults(users.slice(0, 5));
+        setSearchResults(users.slice(0, 6));
       } catch {
         setSearchResults([]);
       } finally {
@@ -104,7 +92,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
                     className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-dark-elevated hover:bg-brand-50 dark:hover:bg-brand-950/40 border border-light-border/60 dark:border-dark-border/60 cursor-pointer group transition-all"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <Avatar name={user.name} size="sm" />
+                      <Avatar name={user.name} src={user.avatarUrl} size="sm" />
                       <div className="min-w-0">
                         <p className="text-xs font-bold text-light-text dark:text-dark-text truncate group-hover:text-brand-500">
                           {user.name}
