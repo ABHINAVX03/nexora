@@ -18,17 +18,14 @@ import { SavedPostsPage } from '../pages/SavedPostsPage';
 import { SettingsPage } from '../pages/SettingsPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { useAuth } from '../context/AuthContext';
+import { AppLoadingScreen } from '../components/ui/AppLoadingScreen';
 
 // Protected Route Guard
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-light-bg dark:bg-dark-bg">
-        <div className="w-10 h-10 border-4 border-brand-500/30 border-t-brand-500 rounded-full animate-spin" />
-      </div>
-    );
+    return <AppLoadingScreen message="Loading your workspace..." />;
   }
 
   if (!isAuthenticated) {
@@ -43,7 +40,7 @@ const PublicOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return null;
+    return <AppLoadingScreen message="Signing you into Nexora..." />;
   }
 
   if (isAuthenticated) {
