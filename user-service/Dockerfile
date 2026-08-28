@@ -9,7 +9,7 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup && \
-    mkdir -p /app/logs /app/uploads/avatars /app/uploads/posts && \
+    mkdir -p /app/logs /app/uploads/avatars /app/uploads/banners /app/uploads/posts && \
     chown -R appuser:appgroup /app
 
 COPY --from=builder /build/target/*.jar app.jar

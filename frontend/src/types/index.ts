@@ -8,6 +8,7 @@ export interface UserDto {
   bio?: string;
   location?: string;
   avatarUrl?: string;
+  bannerUrl?: string;
 }
 
 export interface UserProfileUpdateRequest {
@@ -16,6 +17,7 @@ export interface UserProfileUpdateRequest {
   bio?: string;
   location?: string;
   avatarUrl?: string;
+  bannerUrl?: string;
 }
 
 export interface User {
@@ -26,6 +28,7 @@ export interface User {
   bio?: string;
   location?: string;
   avatarUrl?: string;
+  bannerUrl?: string;
   coverUrl?: string;
   role?: string;
   skills?: string[];

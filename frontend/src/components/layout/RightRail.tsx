@@ -120,6 +120,27 @@ export const RightRail: React.FC = () => {
           Spring Cloud API Gateway routing to User, Posts, Connection (Neo4j), and Notification (Kafka) microservices.
         </p>
       </div>
+
+      {/* GitHub Star Project Card */}
+      <a
+        href="https://github.com/ABHINAVX03/nexora"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block p-3 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-50/50 via-white to-amber-50/30 dark:from-amber-950/20 dark:to-dark-card hover:border-amber-500/60 transition-all text-xs group"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 font-bold text-amber-600 dark:text-amber-400">
+            <span className="text-sm group-hover:rotate-12 transition-transform">⭐</span>
+            <span>Star on GitHub</span>
+          </div>
+          <span className="text-[10px] font-semibold text-light-muted dark:text-dark-muted group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+            ABHINAVX03/nexora →
+          </span>
+        </div>
+        <p className="text-[11px] text-light-muted dark:text-dark-muted mt-1 leading-snug">
+          Support Nexora open source development with a star on GitHub!
+        </p>
+      </a>
     </aside>
   );
 };

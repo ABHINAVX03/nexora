@@ -10,6 +10,7 @@ import {
   Settings,
   LogOut,
   User as UserIcon,
+  Star,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
@@ -162,6 +163,18 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSearch }) => {
               <Search className="w-5 h-5" />
             </button>
           )}
+
+          {/* GitHub Star Link */}
+          <a
+            href="https://github.com/ABHINAVX03/nexora"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-light-border dark:border-dark-border text-xs font-semibold text-light-text dark:text-dark-text hover:bg-slate-100 dark:hover:bg-dark-elevated transition-colors group shadow-2xs"
+            title="Star Nexora on GitHub"
+          >
+            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 group-hover:scale-110 transition-transform" />
+            <span className="hidden sm:inline">Star</span>
+          </a>
 
           {/* User Profile / Auth State */}
           {isAuthenticated && user ? (

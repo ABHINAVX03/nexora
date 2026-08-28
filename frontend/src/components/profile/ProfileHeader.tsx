@@ -42,6 +42,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const { openChatWith } = useChat();
   const queryClient = useQueryClient();
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
 
   const [currentStatus, setCurrentStatus] = useState<ConnectionStatus>(connectionStatus);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -78,6 +79,23 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     },
   });
 
+  const uploadBannerMutation = useMutation({
+    mutationFn: async (file: File) => {
+      return await userApi.uploadBanner(user.id, file);
+    },
+    onSuccess: (updatedDto) => {
+      updateCurrentUser({ bannerUrl: updatedDto.bannerUrl });
+      queryClient.invalidateQueries({ queryKey: ['user-profile', user.id] });
+      queryClient.invalidateQueries({ queryKey: ['user-info'] });
+      refreshUserProfile();
+      showToast('success', 'Banner Updated', 'Your profile banner has been updated!');
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message || 'Failed to upload banner.';
+      showToast('error', 'Upload Failed', msg);
+    },
+  });
+
   const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -93,6 +111,23 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     }
 
     uploadAvatarMutation.mutate(file);
+  };
+
+  const handleBannerFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('error', 'Invalid File', 'Please select an image file (PNG, JPG, WEBP, GIF).');
+      return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      showToast('error', 'File Too Large', 'Maximum banner size is 15MB.');
+      return;
+    }
+
+    uploadBannerMutation.mutate(file);
   };
 
   const handleConnect = async () => {
@@ -133,8 +168,46 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   return (
     <div className="rounded-3xl border border-light-border dark:border-dark-border bg-white dark:bg-dark-card shadow-card dark:shadow-card-dark overflow-hidden">
       {/* Hero Cover Banner */}
-      <div className="h-36 sm:h-44 w-full relative bg-gradient-to-r from-brand-800 via-indigo-900 to-purple-950">
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+      <div className="h-36 sm:h-48 w-full relative bg-gradient-to-r from-brand-800 via-indigo-900 to-purple-950 overflow-hidden group/banner">
+        {user.bannerUrl ? (
+          <img
+            src={user.bannerUrl}
+            alt={`${user.name}'s Banner`}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-r from-brand-800 via-indigo-900 to-purple-950" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+
+        {/* Change Banner Button (for profile owner) */}
+        {isSelf && (
+          <div className="absolute top-3 right-3 z-10">
+            <button
+              type="button"
+              onClick={() => bannerInputRef.current?.click()}
+              disabled={uploadBannerMutation.isPending}
+              className="px-3 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 text-white backdrop-blur-md transition-all flex items-center gap-1.5 text-xs font-semibold shadow-md cursor-pointer border border-white/10"
+              title="Change Profile Banner"
+            >
+              {uploadBannerMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Edit Banner</span>
+                </>
+              )}
+            </button>
+            <input
+              ref={bannerInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleBannerFileChange}
+            />
+          </div>
+        )}
       </div>
 
       {/* Profile Details Container */}

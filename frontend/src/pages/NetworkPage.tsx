@@ -99,28 +99,18 @@ export const NetworkPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header & Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-light-border/60 dark:border-dark-border/60 pb-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-light-border/60 dark:border-dark-border/60 pb-4">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-light-text dark:text-dark-text flex items-center gap-2">
-            <Users className="w-5 h-5 text-brand-500" />
-            Professional Network
+            <Users className="w-5 h-5 text-brand-500 shrink-0" />
+            <span>Professional Network</span>
           </h2>
           <p className="text-xs text-light-muted dark:text-dark-muted mt-0.5">
             Manage your verified 1st-degree connections and incoming invitations
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-xs h-9 hidden md:flex items-center gap-1.5"
-            leftIcon={<Compass className="w-3.5 h-3.5 text-brand-500" />}
-            onClick={() => navigate('/discover')}
-          >
-            Find Members
-          </Button>
-
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
           <Tabs
             tabs={[
               {
@@ -139,6 +129,16 @@ export const NetworkPage: React.FC = () => {
             activeTab={activeTab}
             onChange={(tab) => setActiveTab(tab as 'first-degree' | 'requests')}
           />
+
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-xs h-9 items-center gap-1.5"
+            leftIcon={<Compass className="w-3.5 h-3.5 text-brand-500" />}
+            onClick={() => navigate('/discover')}
+          >
+            Find Members
+          </Button>
         </div>
       </div>
 

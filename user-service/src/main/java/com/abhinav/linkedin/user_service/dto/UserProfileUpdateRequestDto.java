@@ -13,4 +13,5 @@ public class UserProfileUpdateRequestDto {
     private String bio;
     private String location;
     private String avatarUrl;
+    private String bannerUrl;
 }

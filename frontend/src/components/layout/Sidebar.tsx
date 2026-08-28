@@ -60,7 +60,18 @@ export const Sidebar: React.FC = () => {
       {/* Identity Card */}
       <Card className="overflow-hidden border-light-border dark:border-dark-border">
         {/* Banner */}
-        <div className="h-20 w-full relative bg-gradient-to-r from-brand-700 via-indigo-700 to-purple-800" />
+        <div className="h-20 w-full relative bg-gradient-to-r from-brand-700 via-indigo-700 to-purple-800 overflow-hidden">
+          {user.bannerUrl ? (
+            <img
+              src={user.bannerUrl}
+              alt="Banner"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-r from-brand-700 via-indigo-700 to-purple-800" />
+          )}
+          <div className="absolute inset-0 bg-black/20" />
+        </div>
 
         {/* Profile Info */}
         <div className="p-4 pt-0 text-center relative">
@@ -155,8 +166,23 @@ export const Sidebar: React.FC = () => {
           className="flex items-center gap-2.5 p-2 rounded-xl text-xs font-medium text-light-muted dark:text-dark-muted hover:text-light-text dark:hover:text-dark-text hover:bg-slate-50 dark:hover:bg-dark-elevated transition-colors"
         >
           <Compass className="w-4 h-4 text-brand-500" />
-          <span>Connect by User ID</span>
+          <span>Discover Members</span>
         </Link>
+
+        <a
+          href="https://github.com/ABHINAVX03/nexora"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-between p-2 rounded-xl text-xs font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors"
+        >
+          <div className="flex items-center gap-2.5">
+            <span className="text-sm">⭐</span>
+            <span className="font-semibold">Star on GitHub</span>
+          </div>
+          <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-200/50 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">
+            Open Source
+          </span>
+        </a>
       </Card>
     </aside>
   );

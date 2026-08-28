@@ -15,5 +15,6 @@ public class UserDto {
     private String bio;
     private String location;
     private String avatarUrl;
+    private String bannerUrl;
     private Boolean isEmailVerified = true;
 }

@@ -42,6 +42,7 @@ public class AuthService {
     private final EmailService emailService;
 
     private static final String AVATAR_UPLOAD_DIR = "uploads/avatars";
+    private static final String BANNER_UPLOAD_DIR = "uploads/banners";
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("jpg", "jpeg", "png", "webp", "gif");
 
     @Value("${app.kafka.topics.profile-viewed:profile-viewed-topic}")
@@ -234,6 +235,9 @@ public class AuthService {
         if (requestDto.getAvatarUrl() != null) {
             user.setAvatarUrl(requestDto.getAvatarUrl().trim());
         }
+        if (requestDto.getBannerUrl() != null) {
+            user.setBannerUrl(requestDto.getBannerUrl().trim());
+        }
 
         User updatedUser = userRepository.save(user);
         return modelMapper.map(updatedUser, UserDto.class);
@@ -275,6 +279,46 @@ public class AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         user.setAvatarUrl(avatarUrl);
+        User savedUser = userRepository.save(user);
+        return modelMapper.map(savedUser, UserDto.class);
+    }
+
+    @CacheEvict(value = "userProfiles", key = "#userId")
+    public UserDto uploadBanner(Long userId, MultipartFile file) {
+        if (file.isEmpty()) {
+            throw new BadRequestException("Uploaded banner file is empty");
+        }
+
+        if (file.getSize() > 15 * 1024 * 1024) { // 15MB limit
+            throw new BadRequestException("Banner file size exceeds maximum limit of 15MB");
+        }
+
+        String originalFilename = file.getOriginalFilename();
+        String extension = "jpg";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+        }
+
+        if (!ALLOWED_EXTENSIONS.contains(extension)) {
+            throw new BadRequestException("Unsupported image format. Allowed formats: JPG, PNG, WEBP, GIF");
+        }
+
+        String safeFilename = "banner_" + userId + "_" + UUID.randomUUID().toString().substring(0, 8) + "." + extension;
+        Path targetPath = Paths.get(BANNER_UPLOAD_DIR, safeFilename);
+
+        try {
+            Files.createDirectories(targetPath.getParent());
+            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+            log.info("Saved banner image for user {} to: {}", userId, targetPath.toAbsolutePath());
+        } catch (IOException e) {
+            log.error("Failed to store banner image: {}", e.getMessage(), e);
+            throw new BadRequestException("Failed to save banner image file: " + e.getMessage());
+        }
+
+        String bannerUrl = "/api/v1/users/banner/files/" + safeFilename;
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        user.setBannerUrl(bannerUrl);
         User savedUser = userRepository.save(user);
         return modelMapper.map(savedUser, UserDto.class);
     }

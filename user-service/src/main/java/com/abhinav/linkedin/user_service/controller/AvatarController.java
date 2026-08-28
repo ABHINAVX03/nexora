@@ -27,6 +27,7 @@ public class AvatarController {
 
     private final AuthService authService;
     private static final String AVATAR_UPLOAD_DIR = "uploads/avatars";
+    private static final String BANNER_UPLOAD_DIR = "uploads/banners";
 
     @PostMapping("/{userId}/avatar/upload")
     public ResponseEntity<UserDto> uploadAvatar(
@@ -39,12 +40,30 @@ public class AvatarController {
 
     @GetMapping("/avatar/files/{filename}")
     public ResponseEntity<Resource> getAvatarFile(@PathVariable String filename) {
+        return serveFile(AVATAR_UPLOAD_DIR, filename, "Avatar");
+    }
+
+    @PostMapping("/{userId}/banner/upload")
+    public ResponseEntity<UserDto> uploadBanner(
+            @PathVariable Long userId,
+            @RequestParam("file") MultipartFile file
+    ) {
+        UserDto updatedUser = authService.uploadBanner(userId, file);
+        return ResponseEntity.ok(updatedUser);
+    }
+
+    @GetMapping("/banner/files/{filename}")
+    public ResponseEntity<Resource> getBannerFile(@PathVariable String filename) {
+        return serveFile(BANNER_UPLOAD_DIR, filename, "Banner");
+    }
+
+    private ResponseEntity<Resource> serveFile(String uploadDir, String filename, String typeName) {
         String safeName = Paths.get(filename).getFileName().toString();
-        Path filePath = Paths.get(AVATAR_UPLOAD_DIR, safeName);
+        Path filePath = Paths.get(uploadDir, safeName);
         File file = filePath.toFile();
 
         if (!file.exists() || !file.isFile()) {
-            throw new ResourceNotFoundException("Avatar file not found: " + filename);
+            throw new ResourceNotFoundException(typeName + " file not found: " + filename);
         }
 
         Resource resource = new FileSystemResource(file);
