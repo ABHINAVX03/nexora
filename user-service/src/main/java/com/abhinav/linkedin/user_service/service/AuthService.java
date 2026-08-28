@@ -38,6 +38,8 @@ public class AuthService {
     private final ModelMapper modelMapper;
     private final JwtService jwtService;
     private final KafkaTemplate<Long, Object> kafkaTemplate;
+    private final OtpService otpService;
+    private final EmailService emailService;
 
     private static final String AVATAR_UPLOAD_DIR = "uploads/avatars";
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("jpg", "jpeg", "png", "webp", "gif");
@@ -78,20 +80,35 @@ public class AuthService {
     }
 
     public UserDto signup(SignUpRequestDto signUpRequestDto) {
-        boolean exists = userRepository.existsByEmail(signUpRequestDto.getEmail());
+        String normalizedEmail = signUpRequestDto.getEmail().trim().toLowerCase();
+        boolean exists = userRepository.existsByEmail(normalizedEmail);
 
         if (exists) {
-            throw new BadRequestException("Email already exists");
+            throw new BadRequestException("An account with this email address already exists. Please sign in.");
         }
+
         User user = modelMapper.map(signUpRequestDto, User.class);
+        user.setEmail(normalizedEmail);
         user.setPassword(PasswordUtil.hashPassword(signUpRequestDto.getPassword()));
+        // New users require OTP verification
+        user.setIsEmailVerified(false);
 
         User savedUser = userRepository.save(user);
+
+        // Generate OTP and dispatch verification email
+        try {
+            String otp = otpService.generateAndStoreOtp("verify", savedUser.getEmail());
+            emailService.sendVerificationEmail(savedUser.getEmail(), savedUser.getName(), otp);
+        } catch (Exception e) {
+            log.error("Failed to generate/send signup OTP for {}: {}", savedUser.getEmail(), e.getMessage());
+        }
+
         return modelMapper.map(savedUser, UserDto.class);
     }
 
     public LoginResponseDto login(LoginRequestDto loginRequestDto) {
-        User user = userRepository.findByEmail(loginRequestDto.getEmail())
+        String normalizedEmail = loginRequestDto.getEmail().trim().toLowerCase();
+        User user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "User not found with this email: " + loginRequestDto.getEmail()));
 
@@ -104,10 +121,83 @@ public class AuthService {
             throw new BadRequestException("Incorrect password");
         }
 
+        // Check if user is verified (only blocks if explicitly false)
+        if (Boolean.FALSE.equals(user.getIsEmailVerified())) {
+            // Automatically trigger a fresh OTP if needed
+            try {
+                String otp = otpService.generateAndStoreOtp("verify", user.getEmail());
+                emailService.sendVerificationEmail(user.getEmail(), user.getName(), otp);
+            } catch (Exception ignored) {
+            }
+            throw new BadRequestException("EMAIL_NOT_VERIFIED: Please verify your email with the verification code sent to your inbox.");
+        }
+
         String accessToken = jwtService.generateAccessToken(user.getId());
         String refreshToken = jwtService.generateRefreshToken(user.getId());
 
         return new LoginResponseDto(accessToken, refreshToken);
+    }
+
+    public LoginResponseDto verifyEmailOtp(VerifyOtpRequestDto request) {
+        String normalizedEmail = request.getEmail().trim().toLowerCase();
+        User user = userRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("No account found with email: " + request.getEmail()));
+
+        // Verify OTP against Redis with rate-limiting & single-use check
+        otpService.verifyOtp("verify", normalizedEmail, request.getOtp());
+
+        // Mark verified and persist
+        user.setIsEmailVerified(true);
+        userRepository.save(user);
+
+        // Auto-login upon verification
+        String accessToken = jwtService.generateAccessToken(user.getId());
+        String refreshToken = jwtService.generateRefreshToken(user.getId());
+
+        return new LoginResponseDto(accessToken, refreshToken);
+    }
+
+    public void resendVerificationOtp(ResendOtpRequestDto request) {
+        String normalizedEmail = request.getEmail().trim().toLowerCase();
+        User user = userRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("No account found with email: " + request.getEmail()));
+
+        if (Boolean.TRUE.equals(user.getIsEmailVerified())) {
+            throw new BadRequestException("This account is already verified. Please sign in.");
+        }
+
+        String otp = otpService.generateAndStoreOtp("verify", normalizedEmail);
+        emailService.sendVerificationEmail(user.getEmail(), user.getName(), otp);
+    }
+
+    public void forgotPassword(ForgotPasswordRequestDto request) {
+        String normalizedEmail = request.getEmail().trim().toLowerCase();
+        User user = userRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("No Nexora account found with email: " + request.getEmail()));
+
+        String otp = otpService.generateAndStoreOtp("reset", normalizedEmail);
+        emailService.sendPasswordResetEmail(user.getEmail(), user.getName(), otp);
+    }
+
+    @CacheEvict(value = "userProfiles", allEntries = true)
+    public void resetPassword(ResetPasswordRequestDto request) {
+        if (request.getNewPassword() == null || request.getNewPassword().length() < 6) {
+            throw new BadRequestException("New password must be at least 6 characters long.");
+        }
+
+        String normalizedEmail = request.getEmail().trim().toLowerCase();
+        User user = userRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("No account found with email: " + request.getEmail()));
+
+        // Verify OTP against Redis
+        otpService.verifyOtp("reset", normalizedEmail, request.getOtp());
+
+        // Update password and ensure account is active
+        user.setPassword(PasswordUtil.hashPassword(request.getNewPassword()));
+        user.setIsEmailVerified(true);
+        userRepository.save(user);
+
+        log.info("Password successfully reset for user: {}", normalizedEmail);
     }
 
     public String refreshToken(String refreshToken) {

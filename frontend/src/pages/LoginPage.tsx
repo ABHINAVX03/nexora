@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Mail, Lock, ArrowRight } from 'lucide-react';
+import { Mail, Lock, ArrowRight, ShieldAlert } from 'lucide-react';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -23,6 +23,7 @@ export const LoginPage: React.FC = () => {
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
 
   const {
     register,
@@ -39,6 +40,7 @@ export const LoginPage: React.FC = () => {
 
   const onSubmit = async (data: LoginFormValues) => {
     setErrorMsg(null);
+    setUnverifiedEmail(null);
     try {
       await login({ email: data.email, password: data.password });
       showToast('success', 'Welcome Back', 'Successfully signed into Nexora');
@@ -47,7 +49,13 @@ export const LoginPage: React.FC = () => {
       const message =
         err?.response?.data?.message ||
         'Invalid email or password. Please verify your credentials.';
-      setErrorMsg(message);
+
+      if (message.includes('EMAIL_NOT_VERIFIED') || message.includes('not verified')) {
+        setUnverifiedEmail(data.email.trim());
+        setErrorMsg('Your account email has not been verified yet.');
+      } else {
+        setErrorMsg(message);
+      }
     }
   };
 
@@ -90,7 +98,16 @@ export const LoginPage: React.FC = () => {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {errorMsg && (
               <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 text-xs text-rose-600 dark:text-rose-400">
-                {errorMsg}
+                <p>{errorMsg}</p>
+                {unverifiedEmail && (
+                  <Link
+                    to={`/verify-email?email=${encodeURIComponent(unverifiedEmail)}`}
+                    className="inline-flex items-center gap-1 mt-1.5 font-bold text-brand-600 dark:text-brand-400 underline hover:text-brand-500"
+                  >
+                    <ShieldAlert className="w-3.5 h-3.5" />
+                    Click here to enter verification code
+                  </Link>
+                )}
               </div>
             )}
 
@@ -121,6 +138,13 @@ export const LoginPage: React.FC = () => {
                 />
                 <span>Remember me</span>
               </label>
+
+              <Link
+                to="/forgot-password"
+                className="font-medium text-brand-600 dark:text-brand-400 hover:underline"
+              >
+                Forgot password?
+              </Link>
             </div>
 
             <Button

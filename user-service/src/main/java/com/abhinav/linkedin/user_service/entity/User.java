@@ -33,4 +33,7 @@ public class User {
 
     @Column(nullable = true, length = 1000)
     private String avatarUrl;
+
+    @Column(name = "is_email_verified", nullable = false, columnDefinition = "boolean default true")
+    private Boolean isEmailVerified = true;
 }

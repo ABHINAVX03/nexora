@@ -4,6 +4,9 @@ import { AppShell } from '../components/layout/AppShell';
 import { LandingPage } from '../pages/LandingPage';
 import { LoginPage } from '../pages/LoginPage';
 import { RegisterPage } from '../pages/RegisterPage';
+import { VerifyEmailPage } from '../pages/VerifyEmailPage';
+import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
+import { ResetPasswordPage } from '../pages/ResetPasswordPage';
 import { OnboardingPage } from '../pages/OnboardingPage';
 import { FeedPage } from '../pages/FeedPage';
 import { NetworkPage } from '../pages/NetworkPage';
@@ -75,6 +78,30 @@ export const router = createBrowserRouter([
     element: (
       <PublicOnlyRoute>
         <RegisterPage />
+      </PublicOnlyRoute>
+    ),
+  },
+  {
+    path: '/verify-email',
+    element: (
+      <PublicOnlyRoute>
+        <VerifyEmailPage />
+      </PublicOnlyRoute>
+    ),
+  },
+  {
+    path: '/forgot-password',
+    element: (
+      <PublicOnlyRoute>
+        <ForgotPasswordPage />
+      </PublicOnlyRoute>
+    ),
+  },
+  {
+    path: '/reset-password',
+    element: (
+      <PublicOnlyRoute>
+        <ResetPasswordPage />
       </PublicOnlyRoute>
     ),
   },

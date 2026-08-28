@@ -53,8 +53,8 @@ export const RegisterPage: React.FC = () => {
         password: data.password,
       });
 
-      showToast('success', 'Account Created', 'Welcome to Nexora!');
-      navigate('/feed');
+      showToast('success', 'Verification Code Sent', 'Please check your email for the 6-digit confirmation code.');
+      navigate(`/verify-email?email=${encodeURIComponent(data.email.trim())}`);
     } catch (err: any) {
       const msg =
         err?.response?.data?.message ||

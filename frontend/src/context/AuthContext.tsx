@@ -10,6 +10,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (credentials: LoginRequest) => Promise<void>;
   signup: (data: SignUpRequest) => Promise<void>;
+  verifyEmailOtp: (email: string, otp: string) => Promise<void>;
   logout: () => void;
   updateCurrentUser: (updates: Partial<User>) => void;
   refreshUserProfile: () => Promise<void>;
@@ -70,7 +71,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(loadedUser);
           localStorage.setItem('nexora_user', JSON.stringify(loadedUser));
         } catch (err) {
-          // If offline or network glitch, retain existing cached user without forcing logout
           console.warn('Background profile sync skipped, keeping persistent local session:', err);
         }
       }
@@ -134,29 +134,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (data: SignUpRequest) => {
     setIsLoading(true);
     try {
-      const userDto = await authApi.signup(data);
-      // Auto login after signup if password provided
-      if (data.password) {
-        const loginRes = await authApi.login({ email: data.email, password: data.password });
-        setToken(loginRes.accessToken);
-        localStorage.setItem('nexora_token', loginRes.accessToken);
-        if (loginRes.refreshToken) {
-          localStorage.setItem('nexora_refresh_token', loginRes.refreshToken);
-        }
+      await authApi.signup(data);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const verifyEmailOtp = async (email: string, otp: string) => {
+    setIsLoading(true);
+    try {
+      const verifyRes = await authApi.verifyEmail({ email, otp });
+      const jwtToken = verifyRes.accessToken;
+      const refreshToken = verifyRes.refreshToken;
+
+      setToken(jwtToken);
+      localStorage.setItem('nexora_token', jwtToken);
+      if (refreshToken) {
+        localStorage.setItem('nexora_refresh_token', refreshToken);
       }
 
-      const newUser: User = {
-        id: userDto.id,
-        name: userDto.name,
-        email: userDto.email,
-        headline: userDto.headline || 'Member @ Nexora',
-        bio: userDto.bio || '',
-        location: userDto.location || '',
-        avatarUrl: userDto.avatarUrl,
-      };
+      const payload = parseJwtPayload(jwtToken);
+      const userId = payload?.sub ? parseInt(payload.sub, 10) : null;
 
-      setUser(newUser);
-      localStorage.setItem('nexora_user', JSON.stringify(newUser));
+      if (userId) {
+        try {
+          const backendUser = await userApi.getUserById(userId);
+          const userProfile: User = {
+            id: backendUser.id,
+            name: backendUser.name,
+            email: backendUser.email,
+            headline: backendUser.headline || 'Member @ Nexora',
+            bio: backendUser.bio || '',
+            location: backendUser.location || '',
+            avatarUrl: backendUser.avatarUrl,
+          };
+          setUser(userProfile);
+          localStorage.setItem('nexora_user', JSON.stringify(userProfile));
+        } catch {
+          const fallbackUser: User = {
+            id: userId,
+            name: email.split('@')[0] || 'Nexora Member',
+            email,
+            headline: 'Member @ Nexora',
+          };
+          setUser(fallbackUser);
+          localStorage.setItem('nexora_user', JSON.stringify(fallbackUser));
+        }
+      }
     } finally {
       setIsLoading(false);
     }
@@ -208,6 +232,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         signup,
+        verifyEmailOtp,
         logout,
         updateCurrentUser,
         refreshUserProfile,
