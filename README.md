@@ -40,7 +40,7 @@ graph TD
     Gateway -->|Service Discovery| Eureka
     Gateway -->|Pull Config| Config
 
-    subgraph Domain Microservices [Domain Microservices (Java 21 Virtual Threads)]
+    subgraph DomainServices ["Domain Microservices (Java 21 Virtual Threads)"]
         UserService["user-service (Port 9020)<br/>Auth • Profiles • Search • S3 Upload"]
         PostsService["posts-service (Port 9010)<br/>Feed Ranking • CRUD • S3 Media"]
         ConnService["connection-service (Port 8090)<br/>Neo4j Graph Social Network"]
@@ -54,7 +54,7 @@ graph TD
     Gateway --> NotifService
     Gateway --> ChatService
 
-    subgraph Data & Storage Layer
+    subgraph StorageLayer ["Data & Storage Layer"]
         PostgresDB[(PostgreSQL - Neon Pooler)]
         Neo4jDB[(Neo4j AuraDB - Graph Relations)]
         RedisCache[(Redis In-Memory Cache)]
