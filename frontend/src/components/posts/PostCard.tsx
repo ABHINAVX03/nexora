@@ -45,6 +45,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [isCommentsOpen, setIsCommentsOpen] = useState<boolean>(false);
   const [editContent, setEditContent] = useState<string>(post.content);
+  const [mediaError, setMediaError] = useState<boolean>(false);
 
   // Poll state
   const [selectedOptionId, setSelectedOptionId] = useState<number | null>(null);
@@ -500,12 +501,13 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
             )}
 
             {/* Attached Media / Image */}
-            {post.mediaUrl && (
+            {post.mediaUrl && !mediaError && (
               <div className="rounded-2xl overflow-hidden border border-light-border/70 dark:border-dark-border/70 bg-slate-100 dark:bg-dark-elevated max-h-[500px]">
                 <img
                   src={post.mediaUrl}
                   alt="Post attachment"
                   loading="lazy"
+                  onError={() => setMediaError(true)}
                   className="w-full h-full max-h-[500px] object-cover hover:scale-[1.01] transition-transform duration-300 cursor-pointer"
                   onClick={() => window.open(post.mediaUrl, '_blank')}
                 />
