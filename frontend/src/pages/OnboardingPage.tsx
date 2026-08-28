@@ -28,11 +28,8 @@ export const OnboardingPage: React.FC = () => {
 
   const [step, setStep] = useState(1);
 
-  // Form states
   const [headline, setHeadline] = useState(user?.headline || 'Software Engineer · Microservices');
   const [location, setLocation] = useState(user?.location || '');
-  const [targetUserId, setTargetUserId] = useState('');
-  const [hasSentConnect, setHasSentConnect] = useState(false);
 
   const [selectedSkills, setSelectedSkills] = useState<string[]>([
     'Distributed Systems',
@@ -80,20 +77,6 @@ export const OnboardingPage: React.FC = () => {
       setSelectedInterests(selectedInterests.filter((i) => i !== interest));
     } else {
       setSelectedInterests([...selectedInterests, interest]);
-    }
-  };
-
-  const handleSendConnection = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const idNum = parseInt(targetUserId.trim(), 10);
-    if (isNaN(idNum) || idNum <= 0) return;
-    try {
-      await connectionApi.sendConnectionRequest(idNum);
-      setHasSentConnect(true);
-      showToast('success', 'Invitation Sent', 'Connection request sent successfully!');
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Failed to send request.';
-      showToast('error', 'Request Failed', msg);
     }
   };
 
@@ -273,32 +256,20 @@ export const OnboardingPage: React.FC = () => {
 
           {/* STEP 5 */}
           {step === 5 && (
-            <div className="space-y-4 animate-fade-in">
-              <div className="text-center space-y-1.5">
-                <h3 className="text-xl font-bold tracking-tight">Step 5: Connect with Members</h3>
-                <p className="text-xs text-light-muted dark:text-dark-muted">
-                  Send a connection request to a known member or skip to feed
+            <div className="space-y-4 animate-fade-in text-center py-2">
+              <div className="w-16 h-16 rounded-2xl bg-brand-50 dark:bg-brand-950/50 border border-brand-500/30 flex items-center justify-center mx-auto text-brand-600 dark:text-brand-400">
+                <Users className="w-8 h-8" />
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="text-xl font-bold tracking-tight">Step 5: Grow Your Professional Circle</h3>
+                <p className="text-xs text-light-muted dark:text-dark-muted max-w-sm mx-auto">
+                  Find peers and leaders by direct name, full name, or work email in the Nexora Discover directory.
                 </p>
               </div>
-
-              <form onSubmit={handleSendConnection} className="space-y-3 py-2">
-                <Input
-                  label="Member User ID"
-                  placeholder="Enter User ID (e.g. 1)..."
-                  value={targetUserId}
-                  onChange={(e) => setTargetUserId(e.target.value)}
-                />
-                <Button
-                  type="submit"
-                  variant="secondary"
-                  size="sm"
-                  disabled={!targetUserId.trim() || hasSentConnect}
-                  className="w-full text-xs"
-                  leftIcon={<UserPlus className="w-3.5 h-3.5" />}
-                >
-                  {hasSentConnect ? 'Invitation Sent' : 'Send Connection Request'}
-                </Button>
-              </form>
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-dark-elevated text-xs text-light-muted dark:text-dark-muted border border-light-border/60 dark:border-dark-border/60 max-w-sm mx-auto">
+                <p className="font-semibold text-light-text dark:text-dark-text mb-1">🔍 Search anytime from anywhere</p>
+                Press <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-dark-border font-mono text-[10px]">⌘K</kbd> to search members, topics, and posts instantly.
+              </div>
             </div>
           )}
 
