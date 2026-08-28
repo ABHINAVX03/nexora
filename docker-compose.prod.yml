@@ -127,6 +127,7 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-ht+hUVfOSyT4VC1EyPaoIZsbIcfAQAfQc9gvQIZ7}
       - AWS_REGION=${AWS_REGION:-ap-south-1}
       - AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME:-nexora-media-mumbai}
+      - AWS_CLOUDFRONT_DOMAIN=${AWS_CLOUDFRONT_DOMAIN:-https://d2qsjnx0f10hlx.cloudfront.net}
     depends_on:
       - config-server
       - discovery-server
@@ -157,6 +158,7 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-ht+hUVfOSyT4VC1EyPaoIZsbIcfAQAfQc9gvQIZ7}
       - AWS_REGION=${AWS_REGION:-ap-south-1}
       - AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME:-nexora-media-mumbai}
+      - AWS_CLOUDFRONT_DOMAIN=${AWS_CLOUDFRONT_DOMAIN:-https://d2qsjnx0f10hlx.cloudfront.net}
     depends_on:
       - config-server
       - discovery-server
