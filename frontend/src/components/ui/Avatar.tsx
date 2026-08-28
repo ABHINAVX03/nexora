@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { getInitials } from '../../utils/formatters';
@@ -21,6 +21,11 @@ export const Avatar: React.FC<AvatarProps> = ({
   onClick,
 }) => {
   const [imgError, setImgError] = useState(false);
+
+  // Reset image error state whenever src changes
+  useEffect(() => {
+    setImgError(false);
+  }, [src]);
 
   const sizeStyles = {
     xs: 'w-6 h-6 text-[10px]',

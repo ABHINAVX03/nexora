@@ -65,6 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             headline: profile.headline || 'Member @ Nexora',
             bio: profile.bio || '',
             location: profile.location || '',
+            avatarUrl: profile.avatarUrl,
           };
           setUser(loadedUser);
           localStorage.setItem('nexora_user', JSON.stringify(loadedUser));
@@ -110,6 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           headline: backendUser.headline || 'Member @ Nexora',
           bio: backendUser.bio || '',
           location: backendUser.location || '',
+          avatarUrl: backendUser.avatarUrl,
         };
 
         setUser(userProfile);
@@ -150,6 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         headline: userDto.headline || 'Member @ Nexora',
         bio: userDto.bio || '',
         location: userDto.location || '',
+        avatarUrl: userDto.avatarUrl,
       };
 
       setUser(newUser);
@@ -187,6 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         headline: updated.headline || 'Member @ Nexora',
         bio: updated.bio || '',
         location: updated.location || '',
+        avatarUrl: updated.avatarUrl,
       };
       setUser(refreshedUser);
       localStorage.setItem('nexora_user', JSON.stringify(refreshedUser));
