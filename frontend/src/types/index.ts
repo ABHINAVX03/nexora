@@ -38,17 +38,42 @@ export interface UserPresenceDto {
   lastActiveAt?: string;
 }
 
+export interface PollOptionDto {
+  id: number;
+  optionText: string;
+  votesCount: number;
+  votePercentage: number;
+}
+
+export interface PollDto {
+  id: number;
+  postId?: number;
+  question: string;
+  options: PollOptionDto[];
+  totalVotes: number;
+  userVotedOptionId?: number | null;
+  hasVoted?: boolean;
+  createdAt: string;
+}
+
+export interface PollCreateInput {
+  question: string;
+  options: string[];
+}
+
 export interface PostDto {
   id: number;
   content: string;
   mediaUrl?: string;
   userId: number;
+  poll?: PollDto;
   createdAt: string;
 }
 
 export interface PostCreateInput {
   content: string;
   mediaUrl?: string;
+  poll?: PollCreateInput;
 }
 
 export interface Post {
@@ -56,6 +81,7 @@ export interface Post {
   content: string;
   mediaUrl?: string;
   userId: number;
+  poll?: PollDto;
   createdAt: string;
   authorName?: string;
   authorEmail?: string;

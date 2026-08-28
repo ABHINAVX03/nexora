@@ -1,6 +1,7 @@
 package com.abhinav.linkedin.posts_service.controller;
 
 import com.abhinav.linkedin.posts_service.auth.UserContextHolder;
+import com.abhinav.linkedin.posts_service.dto.PollDto;
 import com.abhinav.linkedin.posts_service.dto.PostCreateRequestDto;
 import com.abhinav.linkedin.posts_service.dto.PostDto;
 import com.abhinav.linkedin.posts_service.exception.BadRequestException;
@@ -128,5 +129,24 @@ public class PostController {
         Long currentUserId = extractUserId(request);
         boolean isBookmarked = postService.isPostBookmarked(postId, currentUserId);
         return ResponseEntity.ok(Map.of("bookmarked", isBookmarked));
+    }
+
+    @PostMapping("/polls/{pollId}/vote/{optionId}")
+    public ResponseEntity<PollDto> votePoll(
+            @PathVariable Long pollId,
+            @PathVariable Long optionId,
+            HttpServletRequest request) {
+        Long currentUserId = requireUserId(request);
+        PollDto updatedPoll = postService.votePoll(pollId, optionId, currentUserId);
+        return ResponseEntity.ok(updatedPoll);
+    }
+
+    @GetMapping("/{postId}/poll")
+    public ResponseEntity<PollDto> getPoll(
+            @PathVariable Long postId,
+            HttpServletRequest request) {
+        Long currentUserId = extractUserId(request);
+        PollDto poll = postService.getPollByPostId(postId, currentUserId);
+        return ResponseEntity.ok(poll);
     }
 }

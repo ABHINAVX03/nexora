@@ -11,8 +11,10 @@ import {
   Save,
   MessageSquare,
   Bookmark,
+  BarChart2,
+  CheckCircle2,
 } from 'lucide-react';
-import { Post, UserDto, CommentDto, LikeStatusDto } from '../../types';
+import { Post, UserDto, CommentDto, LikeStatusDto, PollDto } from '../../types';
 import { Avatar } from '../ui/Avatar';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -44,7 +46,17 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [isCommentsOpen, setIsCommentsOpen] = useState<boolean>(false);
   const [editContent, setEditContent] = useState<string>(post.content);
 
+  // Poll state
+  const [selectedOptionId, setSelectedOptionId] = useState<number | null>(null);
+  const [pollState, setPollState] = useState<PollDto | undefined>(post.poll);
+
   const isOwner = user?.id === post.userId;
+
+  useEffect(() => {
+    if (post.poll) {
+      setPollState(post.poll);
+    }
+  }, [post.poll]);
 
   // Fetch author details from real User microservice
   const { data: author } = useQuery<UserDto>({
@@ -120,7 +132,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const authorHeadline = author?.headline || `Member #${post.userId}`;
   const authorAvatar = author?.avatarUrl || post.authorAvatar;
 
-  // Toggle Like mutation (+1 / -1 toggle)
+  // Toggle Like mutation
   const toggleLikeMutation = useMutation({
     mutationFn: async () => {
       return await postApi.toggleLike(post.id);
@@ -171,6 +183,22 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
     onError: () => {
       setIsBookmarked((prev) => !prev);
       showToast('error', 'Error', 'Failed to update bookmark.');
+    },
+  });
+
+  // Vote on Poll mutation
+  const votePollMutation = useMutation({
+    mutationFn: async ({ pollId, optionId }: { pollId: number; optionId: number }) => {
+      return await postApi.votePoll(pollId, optionId);
+    },
+    onSuccess: (updatedPoll) => {
+      setPollState(updatedPoll);
+      queryClient.invalidateQueries({ queryKey: ['feed-posts'] });
+      showToast('success', 'Vote Recorded', 'Your vote has been counted!');
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message || 'Could not record vote.';
+      showToast('error', 'Vote Failed', msg);
     },
   });
 
@@ -246,6 +274,8 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
       return <span key={index}>{part}</span>;
     });
   };
+
+  const hasUserVoted = pollState?.hasVoted || isOwner;
 
   return (
     <Card className="border-light-border dark:border-dark-border shadow-subtle hover:border-slate-300 dark:hover:border-zinc-700 transition-all">
@@ -366,6 +396,107 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
               <p className="text-sm text-light-text dark:text-dark-text whitespace-pre-line leading-relaxed">
                 {renderFormattedContent(post.content)}
               </p>
+            )}
+
+            {/* Attached Interactive Community Poll */}
+            {pollState && (
+              <div className="p-4 rounded-2xl bg-slate-50/90 dark:bg-dark-elevated border border-brand-500/20 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-brand-600 dark:text-brand-400">
+                    <BarChart2 className="w-4 h-4" />
+                    <span>Poll</span>
+                  </div>
+                  <span className="text-[11px] text-light-muted dark:text-dark-muted font-medium">
+                    {pollState.totalVotes} {pollState.totalVotes === 1 ? 'vote' : 'votes'}
+                  </span>
+                </div>
+
+                <h4 className="text-sm font-semibold text-light-text dark:text-dark-text">
+                  {pollState.question}
+                </h4>
+
+                <div className="space-y-2 pt-1">
+                  {pollState.options.map((opt) => {
+                    const isVotedChoice = pollState.userVotedOptionId === opt.id;
+                    const percent = opt.votePercentage ?? 0;
+
+                    return (
+                      <div key={opt.id}>
+                        {hasUserVoted ? (
+                          // Result Bar View
+                          <div className="relative overflow-hidden rounded-xl border border-light-border dark:border-dark-border p-2.5 bg-white dark:bg-dark-card transition-all">
+                            {/* Animated progress bar fill */}
+                            <div
+                              className={`absolute inset-0 transition-all duration-700 ease-out ${
+                                isVotedChoice
+                                  ? 'bg-brand-500/20 dark:bg-brand-500/30'
+                                  : 'bg-slate-200/50 dark:bg-zinc-800/60'
+                              }`}
+                              style={{ width: `${percent}%` }}
+                            />
+
+                            <div className="relative flex items-center justify-between z-10 text-xs">
+                              <div className="flex items-center gap-1.5 font-semibold text-light-text dark:text-dark-text">
+                                {isVotedChoice && (
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400 shrink-0" />
+                                )}
+                                <span>{opt.optionText}</span>
+                              </div>
+                              <div className="flex items-center gap-2 font-bold text-light-text dark:text-dark-text">
+                                <span>{percent}%</span>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          // Interactive Voting Option
+                          <button
+                            type="button"
+                            onClick={() => setSelectedOptionId(opt.id)}
+                            className={`w-full text-left p-2.5 rounded-xl border text-xs font-semibold transition-all flex items-center justify-between ${
+                              selectedOptionId === opt.id
+                                ? 'border-brand-500 bg-brand-50/70 dark:bg-brand-950/40 text-brand-600 dark:text-brand-300 ring-1 ring-brand-500'
+                                : 'border-light-border dark:border-dark-border hover:border-brand-300 dark:hover:border-zinc-700 bg-white dark:bg-dark-card text-light-text dark:text-dark-text'
+                            }`}
+                          >
+                            <span>{opt.optionText}</span>
+                            <div
+                              className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
+                                selectedOptionId === opt.id
+                                  ? 'border-brand-500 bg-brand-500 text-white'
+                                  : 'border-slate-300 dark:border-zinc-600'
+                              }`}
+                            >
+                              {selectedOptionId === opt.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                            </div>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {!hasUserVoted && (
+                  <div className="flex items-center justify-end pt-1">
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      disabled={!selectedOptionId || votePollMutation.isPending}
+                      isLoading={votePollMutation.isPending}
+                      onClick={() => {
+                        if (selectedOptionId && pollState) {
+                          votePollMutation.mutate({
+                            pollId: pollState.id,
+                            optionId: selectedOptionId,
+                          });
+                        }
+                      }}
+                      className="text-xs h-7 px-3"
+                    >
+                      Submit Vote
+                    </Button>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Attached Media / Image */}

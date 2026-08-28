@@ -10,4 +10,6 @@ public class PostCreateRequestDto {
     private String content;
 
     private String mediaUrl;
+
+    private PollCreateRequestDto poll;
 }

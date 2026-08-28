@@ -1,0 +1,16 @@
+package com.abhinav.linkedin.posts_service.repository;
+
+import com.abhinav.linkedin.posts_service.entity.Poll;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
+@Repository
+public interface PollRepository extends JpaRepository<Poll, Long> {
+
+    @Query("SELECT p FROM Poll p LEFT JOIN FETCH p.options WHERE p.post.id = :postId")
+    Optional<Poll> findByPostId(@Param("postId") Long postId);
+}

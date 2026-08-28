@@ -10,5 +10,6 @@ public class PostDto {
     private String content;
     private String mediaUrl;
     private Long userId;
+    private PollDto poll;
     private LocalDateTime createdAt;
 }

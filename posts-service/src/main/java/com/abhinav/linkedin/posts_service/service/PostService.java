@@ -1,14 +1,18 @@
 package com.abhinav.linkedin.posts_service.service;
 
 import com.abhinav.linkedin.posts_service.client.ConnectionClient;
-import com.abhinav.linkedin.posts_service.dto.PersonDto;
-import com.abhinav.linkedin.posts_service.dto.PostCreateRequestDto;
-import com.abhinav.linkedin.posts_service.dto.PostDto;
+import com.abhinav.linkedin.posts_service.dto.*;
+import com.abhinav.linkedin.posts_service.entity.Poll;
+import com.abhinav.linkedin.posts_service.entity.PollOption;
+import com.abhinav.linkedin.posts_service.entity.PollVote;
 import com.abhinav.linkedin.posts_service.entity.Post;
 import com.abhinav.linkedin.posts_service.entity.PostBookmark;
 import com.abhinav.linkedin.posts_service.event.PostCreatedEvent;
+import com.abhinav.linkedin.posts_service.exception.BadRequestException;
 import com.abhinav.linkedin.posts_service.exception.ForbiddenException;
 import com.abhinav.linkedin.posts_service.exception.ResourceNotFoundException;
+import com.abhinav.linkedin.posts_service.repository.PollRepository;
+import com.abhinav.linkedin.posts_service.repository.PollVoteRepository;
 import com.abhinav.linkedin.posts_service.repository.PostBookmarkRepository;
 import com.abhinav.linkedin.posts_service.repository.PostLikeRepository;
 import com.abhinav.linkedin.posts_service.repository.PostRepository;
@@ -35,6 +39,8 @@ public class PostService {
     private final PostRepository postRepository;
     private final PostLikeRepository postLikeRepository;
     private final PostBookmarkRepository postBookmarkRepository;
+    private final PollRepository pollRepository;
+    private final PollVoteRepository pollVoteRepository;
     private final ConnectionClient connectionClient;
     private final ModelMapper modelMapper;
     private final KafkaTemplate<Long, PostCreatedEvent> kafkaTemplate;
@@ -42,16 +48,46 @@ public class PostService {
     @Value("${app.kafka.topics.post-created:post-created-topic}")
     private String postCreatedTopic;
 
+    @Transactional
     @CacheEvict(value = "userFeed", allEntries = true)
     public PostDto createPost(PostCreateRequestDto postDto, Long userId) {
         log.info("Creating post for user: {}", userId);
-        Post post = modelMapper.map(postDto, Post.class);
+        Post post = new Post();
+        post.setContent(postDto.getContent());
         post.setUserId(userId);
         if (postDto.getMediaUrl() != null && !postDto.getMediaUrl().isBlank()) {
             post.setMediaUrl(postDto.getMediaUrl().trim());
         }
 
         Post savedPost = postRepository.save(post);
+
+        // Handle Poll attachment if provided
+        if (postDto.getPoll() != null && postDto.getPoll().getQuestion() != null && !postDto.getPoll().getQuestion().isBlank()) {
+            PollCreateRequestDto pollReq = postDto.getPoll();
+            Poll poll = Poll.builder()
+                    .post(savedPost)
+                    .question(pollReq.getQuestion().trim())
+                    .build();
+
+            List<PollOption> options = new ArrayList<>();
+            if (pollReq.getOptions() != null) {
+                for (String optText : pollReq.getOptions()) {
+                    if (optText != null && !optText.isBlank()) {
+                        options.add(PollOption.builder()
+                                .poll(poll)
+                                .optionText(optText.trim())
+                                .votesCount(0)
+                                .build());
+                    }
+                }
+            }
+            if (options.size() >= 2) {
+                poll.setOptions(options);
+                pollRepository.save(poll);
+                savedPost.setPoll(poll);
+            }
+        }
+
         PostCreatedEvent postCreatedEvent = PostCreatedEvent.builder()
                 .postId(savedPost.getId())
                 .creatorId(userId)
@@ -65,7 +101,7 @@ public class PostService {
             log.error("Failed to publish PostCreatedEvent to Kafka: {}", e.getMessage(), e);
         }
 
-        return modelMapper.map(savedPost, PostDto.class);
+        return mapToDtoWithPoll(savedPost, userId);
     }
 
     public PostDto getPostById(Long id, Long currentUserId) {
@@ -74,7 +110,7 @@ public class PostService {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + id));
 
-        return modelMapper.map(post, PostDto.class);
+        return mapToDtoWithPoll(post, currentUserId);
     }
 
     @CacheEvict(value = "posts", key = "#postId")
@@ -96,7 +132,7 @@ public class PostService {
             post.setMediaUrl(updateDto.getMediaUrl().trim());
         }
         Post updatedPost = postRepository.save(post);
-        return modelMapper.map(updatedPost, PostDto.class);
+        return mapToDtoWithPoll(updatedPost, currentUserId);
     }
 
     @Transactional
@@ -115,6 +151,12 @@ public class PostService {
             throw new ForbiddenException("You are not authorized to delete this post");
         }
 
+        Optional<Poll> pollOpt = pollRepository.findByPostId(postId);
+        pollOpt.ifPresent(poll -> {
+            pollVoteRepository.deleteByPollId(poll.getId());
+            pollRepository.delete(poll);
+        });
+
         postBookmarkRepository.deleteByPostId(postId);
         postLikeRepository.deleteByPostId(postId);
         postRepository.delete(post);
@@ -126,7 +168,7 @@ public class PostService {
 
         List<Post> posts = postRepository.findByUserId(targetUserId);
         return posts.stream()
-                .map(element -> modelMapper.map(element, PostDto.class))
+                .map(p -> mapToDtoWithPoll(p, currentUserId))
                 .collect(Collectors.toList());
     }
 
@@ -172,7 +214,7 @@ public class PostService {
         rankedPosts.addAll(communityPosts);
 
         return rankedPosts.stream()
-                .map(post -> modelMapper.map(post, PostDto.class))
+                .map(p -> mapToDtoWithPoll(p, currentUserId))
                 .collect(Collectors.toList());
     }
 
@@ -181,7 +223,7 @@ public class PostService {
                 currentUserId, throwable.getMessage());
         List<Post> allPosts = postRepository.findAllByOrderByCreatedAtDesc();
         return allPosts.stream()
-                .map(post -> modelMapper.map(post, PostDto.class))
+                .map(p -> mapToDtoWithPoll(p, currentUserId))
                 .collect(Collectors.toList());
     }
 
@@ -216,8 +258,91 @@ public class PostService {
         log.debug("Retrieving bookmarked posts for user: {}", currentUserId);
         List<PostBookmark> bookmarks = postBookmarkRepository.findByUserIdWithPost(currentUserId);
         return bookmarks.stream()
-                .map(b -> modelMapper.map(b.getPost(), PostDto.class))
+                .map(b -> mapToDtoWithPoll(b.getPost(), currentUserId))
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public PollDto votePoll(Long pollId, Long optionId, Long currentUserId) {
+        log.info("User {} casting vote for option {} on poll {}", currentUserId, optionId, pollId);
+        Poll poll = pollRepository.findById(pollId)
+                .orElseThrow(() -> new ResourceNotFoundException("Poll not found with id: " + pollId));
+
+        if (pollVoteRepository.existsByPollIdAndUserId(pollId, currentUserId)) {
+            throw new BadRequestException("You have already voted on this poll");
+        }
+
+        PollOption selectedOption = poll.getOptions().stream()
+                .filter(opt -> opt.getId().equals(optionId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Option not found with id: " + optionId));
+
+        selectedOption.setVotesCount(selectedOption.getVotesCount() + 1);
+
+        PollVote vote = PollVote.builder()
+                .pollId(pollId)
+                .optionId(optionId)
+                .userId(currentUserId)
+                .build();
+        pollVoteRepository.save(vote);
+
+        return buildPollDto(poll, currentUserId);
+    }
+
+    public PollDto getPollByPostId(Long postId, Long currentUserId) {
+        Poll poll = pollRepository.findByPostId(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("No poll found for post id: " + postId));
+        return buildPollDto(poll, currentUserId);
+    }
+
+    private PostDto mapToDtoWithPoll(Post post, Long currentUserId) {
+        PostDto dto = modelMapper.map(post, PostDto.class);
+        Optional<Poll> pollOpt = pollRepository.findByPostId(post.getId());
+        pollOpt.ifPresent(poll -> dto.setPoll(buildPollDto(poll, currentUserId)));
+        return dto;
+    }
+
+    private PollDto buildPollDto(Poll poll, Long currentUserId) {
+        int totalVotes = poll.getOptions().stream()
+                .mapToInt(PollOption::getVotesCount)
+                .sum();
+
+        Long votedOptionId = null;
+        boolean hasVoted = false;
+
+        if (currentUserId != null) {
+            Optional<PollVote> voteOpt = pollVoteRepository.findByPollIdAndUserId(poll.getId(), currentUserId);
+            if (voteOpt.isPresent()) {
+                votedOptionId = voteOpt.get().getOptionId();
+                hasVoted = true;
+            }
+        }
+
+        final Long finalVotedOptionId = votedOptionId;
+        final boolean finalHasVoted = hasVoted;
+
+        List<PollOptionDto> optionDtos = poll.getOptions().stream()
+                .map(opt -> {
+                    double percent = totalVotes > 0 ? (double) opt.getVotesCount() / totalVotes * 100.0 : 0.0;
+                    return PollOptionDto.builder()
+                            .id(opt.getId())
+                            .optionText(opt.getOptionText())
+                            .votesCount(opt.getVotesCount())
+                            .votePercentage(Math.round(percent * 10.0) / 10.0)
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        return PollDto.builder()
+                .id(poll.getId())
+                .postId(poll.getPost() != null ? poll.getPost().getId() : null)
+                .question(poll.getQuestion())
+                .options(optionDtos)
+                .totalVotes(totalVotes)
+                .userVotedOptionId(finalVotedOptionId)
+                .hasVoted(finalHasVoted)
+                .createdAt(poll.getCreatedAt())
+                .build();
     }
 
     @CircuitBreaker(name = "connectionService", fallbackMethod = "isFirstDegreeConnectionFallback")

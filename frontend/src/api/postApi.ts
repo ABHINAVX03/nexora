@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { PostDto, LikeStatusDto, PostCreateInput } from '../types';
+import { PostDto, LikeStatusDto, PostCreateInput, PollDto } from '../types';
 
 export const postApi = {
   getFeed: async (): Promise<PostDto[]> => {
@@ -75,5 +75,15 @@ export const postApi = {
   isPostBookmarked: async (postId: number): Promise<boolean> => {
     const response = await apiClient.get<{ bookmarked: boolean }>(`/posts/${postId}/is-bookmarked`);
     return response.data.bookmarked;
+  },
+
+  votePoll: async (pollId: number, optionId: number): Promise<PollDto> => {
+    const response = await apiClient.post<PollDto>(`/posts/polls/${pollId}/vote/${optionId}`);
+    return response.data;
+  },
+
+  getPoll: async (postId: number): Promise<PollDto> => {
+    const response = await apiClient.get<PollDto>(`/posts/${postId}/poll`);
+    return response.data;
   },
 };

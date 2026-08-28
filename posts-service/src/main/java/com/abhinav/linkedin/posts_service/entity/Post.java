@@ -24,6 +24,9 @@ public class Post {
 
     private Long userId;
 
+    @OneToOne(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private Poll poll;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 }
