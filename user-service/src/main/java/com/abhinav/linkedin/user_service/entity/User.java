@@ -7,7 +7,13 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
-@Table(name="Users")
+@Table(
+    name = "Users",
+    indexes = {
+        @Index(name = "idx_user_email", columnList = "email", unique = true),
+        @Index(name = "idx_user_name", columnList = "name")
+    }
+)
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -10,7 +10,13 @@ import java.time.LocalDateTime;
 @Entity
 @Getter
 @Setter
-@Table(name = "posts")
+@Table(
+    name = "posts",
+    indexes = {
+        @Index(name = "idx_posts_user_created", columnList = "userId, createdAt DESC"),
+        @Index(name = "idx_posts_created", columnList = "createdAt DESC")
+    }
+)
 public class Post {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
