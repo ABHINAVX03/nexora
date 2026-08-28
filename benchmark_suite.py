@@ -30,14 +30,14 @@ ENDPOINTS = [
 ]
 
 TIERS = [
-    {"users": 100, "duration_sec": 10, "label": "Tier 1 (100 Users)"},
-    {"users": 500, "duration_sec": 12, "label": "Tier 2 (500 Users)"},
-    {"users": 1000, "duration_sec": 15, "label": "Tier 3 (1,000 Users)"},
-    {"users": 5000, "duration_sec": 15, "label": "Tier 4 (5,000 Users)"},
-    {"users": 10000, "duration_sec": 18, "label": "Tier 5 (10,000 Users)"},
-    {"users": 25000, "duration_sec": 20, "label": "Tier 6 (25,000 Users)"},
-    {"users": 50000, "duration_sec": 20, "label": "Tier 7 (50,000 Users)"},
-    {"users": 100000, "duration_sec": 20, "label": "Tier 8 (100,000 Users)"},
+    {"users": 100, "duration_sec": 2, "label": "Tier 1 (100 Users)"},
+    {"users": 500, "duration_sec": 2, "label": "Tier 2 (500 Users)"},
+    {"users": 1000, "duration_sec": 2, "label": "Tier 3 (1,000 Users)"},
+    {"users": 5000, "duration_sec": 2, "label": "Tier 4 (5,000 Users)"},
+    {"users": 10000, "duration_sec": 2, "label": "Tier 5 (10,000 Users)"},
+    {"users": 25000, "duration_sec": 2, "label": "Tier 6 (25,000 Users)"},
+    {"users": 50000, "duration_sec": 2, "label": "Tier 7 (50,000 Users)"},
+    {"users": 100000, "duration_sec": 2, "label": "Tier 8 (100,000 Users)"},
 ]
 
 def make_request(url: str, timeout: float = 6.0) -> Dict[str, Any]:
