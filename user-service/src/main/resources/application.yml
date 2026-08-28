@@ -21,8 +21,6 @@ spring:
   jackson:
     time-zone: UTC
     date-format: yyyy-MM-dd'T'HH:mm:ss.SSS'Z'
-    serialization:
-      write-dates-as-timestamps: false
 
   datasource:
     url: ${DB_URL:${POSTGRES_URL:jdbc:postgresql://ep-long-frost-azl3g2y0-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channelBinding=require}}
