@@ -10,6 +10,11 @@ spring:
   codec:
     max-in-memory-size: 50MB
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
   cloud:
     gateway:
       routes: &gateway_routes

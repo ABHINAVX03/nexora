@@ -246,10 +246,13 @@ services:
       - CONFIG_SERVER_URL=http://config-server:8888
       - EUREKA_SERVER_URL=http://discovery-server:8761/eureka/
       - EUREKA_INSTANCE_HOSTNAME=api-gateway
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
     depends_on:
       - config-server
       - discovery-server
+      - redis
     networks:
       - nexora-net
 
