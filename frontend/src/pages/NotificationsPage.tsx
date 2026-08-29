@@ -32,34 +32,83 @@ export const NotificationsPage: React.FC = () => {
     refetchInterval: 6000,
   });
 
-  // Mark single as read mutation
+  // Mark single as read mutation with instantaneous optimistic update
   const markReadMutation = useMutation({
     mutationFn: async (id: number) => {
-      await notificationApi.markAsRead(id);
+      return await notificationApi.markAsRead(id);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications-list'] });
+    onMutate: async (id: number) => {
+      await queryClient.cancelQueries({ queryKey: ['notifications-list'] });
+      await queryClient.cancelQueries({ queryKey: ['unread-notifications-count'] });
+
+      const previousNotifications = queryClient.getQueryData<NotificationDto[]>(['notifications-list']);
+      const previousUnreadCount = queryClient.getQueryData<number>(['unread-notifications-count']);
+
+      if (previousNotifications) {
+        queryClient.setQueryData<NotificationDto[]>(
+          ['notifications-list'],
+          previousNotifications.map((n) =>
+            n.id === id ? { ...n, isRead: true, readAt: new Date().toISOString() } : n
+          )
+        );
+      }
+
+      if (typeof previousUnreadCount === 'number' && previousUnreadCount > 0) {
+        queryClient.setQueryData<number>(['unread-notifications-count'], Math.max(0, previousUnreadCount - 1));
+      }
+
+      return { previousNotifications, previousUnreadCount };
+    },
+    onError: (_err: any, _id: number, context: any) => {
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(['notifications-list'], context.previousNotifications);
+      }
+      if (typeof context?.previousUnreadCount === 'number') {
+        queryClient.setQueryData(['unread-notifications-count'], context.previousUnreadCount);
+      }
+      showToast('error', 'Error', 'Failed to mark notification as read.');
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['unread-notifications-count'] });
-    },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.message || 'Failed to mark notification as read.';
-      showToast('error', 'Error', msg);
     },
   });
 
-  // Mark all as read mutation
+  // Mark all as read mutation with instantaneous optimistic update
   const markAllReadMutation = useMutation({
     mutationFn: async () => {
-      await notificationApi.markAllAsRead();
+      return await notificationApi.markAllAsRead();
     },
-    onSuccess: () => {
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['notifications-list'] });
+      await queryClient.cancelQueries({ queryKey: ['unread-notifications-count'] });
+
+      const previousNotifications = queryClient.getQueryData<NotificationDto[]>(['notifications-list']);
+      const previousUnreadCount = queryClient.getQueryData<number>(['unread-notifications-count']);
+
+      if (previousNotifications) {
+        queryClient.setQueryData<NotificationDto[]>(
+          ['notifications-list'],
+          previousNotifications.map((n) => ({ ...n, isRead: true, readAt: new Date().toISOString() }))
+        );
+      }
+
+      queryClient.setQueryData<number>(['unread-notifications-count'], 0);
+
+      return { previousNotifications, previousUnreadCount };
+    },
+    onError: (_err: any, _variables: any, context: any) => {
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(['notifications-list'], context.previousNotifications);
+      }
+      if (typeof context?.previousUnreadCount === 'number') {
+        queryClient.setQueryData(['unread-notifications-count'], context.previousUnreadCount);
+      }
+      showToast('error', 'Error', 'Failed to mark all as read.');
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications-list'] });
       queryClient.invalidateQueries({ queryKey: ['unread-notifications-count'] });
       showToast('success', 'All Read', 'Marked all notifications as read.');
-    },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.message || 'Failed to mark all as read.';
-      showToast('error', 'Error', msg);
     },
   });
 

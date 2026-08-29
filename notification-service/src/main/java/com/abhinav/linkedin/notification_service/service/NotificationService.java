@@ -21,12 +21,17 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
 
     public void sendNotification(Long userId, String message, String type) {
-        log.info("Creating notification for user: {} with type: {}", userId, type);
+        sendNotification(userId, message, type, null);
+    }
+
+    public void sendNotification(Long userId, String message, String type, Long relatedEntityId) {
+        log.info("Creating notification for user: {} with type: {} and relatedEntityId: {}", userId, type, relatedEntityId);
 
         Notification notification = Notification.builder()
                 .userId(userId)
                 .message(message)
                 .type(type)
+                .relatedEntityId(relatedEntityId)
                 .isRead(false)
                 .build();
 
@@ -56,9 +61,13 @@ public class NotificationService {
             throw new ForbiddenException("You are not authorized to access this notification");
         }
 
-        notification.setRead(true);
-        Notification updated = notificationRepository.save(notification);
-        return mapToDto(updated);
+        if (!notification.isRead()) {
+            notification.setRead(true);
+            notification.setReadAt(java.time.LocalDateTime.now());
+            notification = notificationRepository.save(notification);
+        }
+
+        return mapToDto(notification);
     }
 
     @Transactional
@@ -74,6 +83,8 @@ public class NotificationService {
                 .message(notification.getMessage())
                 .type(notification.getType())
                 .isRead(notification.isRead())
+                .readAt(notification.getReadAt())
+                .relatedEntityId(notification.getRelatedEntityId())
                 .createdAt(notification.getCreatedAt())
                 .build();
     }

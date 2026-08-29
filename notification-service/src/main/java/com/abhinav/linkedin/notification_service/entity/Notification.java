@@ -32,6 +32,12 @@ public class Notification {
     @Column(nullable = false)
     private boolean isRead = false;
 
+    @Column(nullable = true)
+    private LocalDateTime readAt;
+
+    @Column(nullable = true)
+    private Long relatedEntityId;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

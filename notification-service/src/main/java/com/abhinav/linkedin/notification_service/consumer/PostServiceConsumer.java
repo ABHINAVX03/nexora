@@ -45,7 +45,7 @@ public class PostServiceConsumer {
                     if (connection.getUserId() != null && !connection.getUserId().equals(postCreatedEvent.getCreatorId())) {
                         String message = "Your connection (User #" + postCreatedEvent.getCreatorId() + ") shared a post: \"" + snippet + "\"";
                         log.info("Sending post created notification to connection: {}", connection.getUserId());
-                        notificationService.sendNotification(connection.getUserId(), message, "POST_CREATED");
+                        notificationService.sendNotification(connection.getUserId(), message, "POST_CREATED", postCreatedEvent.getPostId());
                     }
                 }
             } else {
@@ -87,7 +87,7 @@ public class PostServiceConsumer {
         }
 
         String message = "User " + postLikedEvent.getLikedByUserId() + " liked your post.";
-        notificationService.sendNotification(postLikedEvent.getCreatorId(), message, "POST_LIKED");
+        notificationService.sendNotification(postLikedEvent.getCreatorId(), message, "POST_LIKED", postLikedEvent.getPostId());
     }
 
     @KafkaListener(
@@ -111,7 +111,7 @@ public class PostServiceConsumer {
             ? event.getCommentContent().substring(0, 30) + "..."
             : event.getCommentContent();
         String message = "User " + event.getCommenterId() + " commented: \"" + snippet + "\"";
-        notificationService.sendNotification(event.getCreatorId(), message, "POST_COMMENTED");
+        notificationService.sendNotification(event.getCreatorId(), message, "POST_COMMENTED", event.getPostId());
     }
 
     @KafkaListener(
@@ -128,7 +128,7 @@ public class PostServiceConsumer {
         }
 
         String message = "User " + event.getSenderId() + " sent you a connection request.";
-        notificationService.sendNotification(event.getReceiverId(), message, "CONNECTION_REQUEST");
+        notificationService.sendNotification(event.getReceiverId(), message, "CONNECTION_REQUEST", event.getSenderId());
     }
 
     @KafkaListener(
@@ -145,7 +145,7 @@ public class PostServiceConsumer {
         }
 
         String message = "User " + event.getReceiverId() + " accepted your connection request.";
-        notificationService.sendNotification(event.getSenderId(), message, "CONNECTION_ACCEPTED");
+        notificationService.sendNotification(event.getSenderId(), message, "CONNECTION_ACCEPTED", event.getReceiverId());
     }
 
     @KafkaListener(
@@ -169,6 +169,6 @@ public class PostServiceConsumer {
                 ? event.getViewerName()
                 : "User #" + event.getViewerId();
         String message = viewerName + " viewed your profile.";
-        notificationService.sendNotification(event.getViewedUserId(), message, "PROFILE_VIEWED");
+        notificationService.sendNotification(event.getViewedUserId(), message, "PROFILE_VIEWED", event.getViewerId());
     }
 }

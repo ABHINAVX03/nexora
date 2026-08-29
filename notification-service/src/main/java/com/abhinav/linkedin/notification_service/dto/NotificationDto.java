@@ -21,5 +21,7 @@ public class NotificationDto {
     @JsonProperty("isRead")
     private boolean isRead;
 
+    private LocalDateTime readAt;
+    private Long relatedEntityId;
     private LocalDateTime createdAt;
 }

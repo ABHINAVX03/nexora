@@ -167,6 +167,8 @@ export interface NotificationDto {
   message: string;
   type: string;
   isRead: boolean;
+  readAt?: string;
+  relatedEntityId?: number;
   createdAt: string;
 }
 

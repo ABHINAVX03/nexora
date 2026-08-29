@@ -10,7 +10,7 @@ export const MobileNav: React.FC = () => {
   const location = useLocation();
 
   const { data: unreadCount = 0 } = useQuery({
-    queryKey: ['unread-notifications-count-mobile'],
+    queryKey: ['unread-notifications-count'],
     queryFn: async () => {
       if (!isAuthenticated) return 0;
       try {
