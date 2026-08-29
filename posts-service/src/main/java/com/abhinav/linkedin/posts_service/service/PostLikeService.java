@@ -10,6 +10,7 @@ import com.abhinav.linkedin.posts_service.repository.PostRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
@@ -34,31 +35,40 @@ public class PostLikeService {
         boolean newLikedState;
 
         if (alreadyLiked) {
-            postLikeRepository.deleteByPostIdAndUserId(postId, userId);
+            try {
+                postLikeRepository.deleteByPostIdAndUserId(postId, userId);
+            } catch (Exception e) {
+                log.warn("Concurrent unlike warning for postId={}, userId={}: {}", postId, userId, e.getMessage());
+            }
             newLikedState = false;
             log.info("Post unliked: postId={}, userId={}", postId, userId);
         } else {
-            PostLike postLike = new PostLike();
-            postLike.setPostId(postId);
-            postLike.setUserId(userId);
-            postLikeRepository.save(postLike);
-            newLikedState = true;
-            log.info("Post liked: postId={}, userId={}", postId, userId);
+            try {
+                PostLike postLike = new PostLike();
+                postLike.setPostId(postId);
+                postLike.setUserId(userId);
+                postLikeRepository.save(postLike);
+                newLikedState = true;
+                log.info("Post liked: postId={}, userId={}", postId, userId);
 
-            // Emit notification event if the liker is not the author
-            if (!userId.equals(post.getUserId())) {
-                PostLikedEvent postLikedEvent = PostLikedEvent.builder()
-                        .postId(postId)
-                        .likedByUserId(userId)
-                        .creatorId(post.getUserId())
-                        .build();
+                // Emit notification event if the liker is not the author
+                if (!userId.equals(post.getUserId())) {
+                    PostLikedEvent postLikedEvent = PostLikedEvent.builder()
+                            .postId(postId)
+                            .likedByUserId(userId)
+                            .creatorId(post.getUserId())
+                            .build();
 
-                try {
-                    kafkaTemplate.send(postLikedTopic, postId, postLikedEvent);
-                    log.info("Published PostLikedEvent to Kafka topic: {} for postId: {}", postLikedTopic, postId);
-                } catch (Exception e) {
-                    log.error("Failed to publish PostLikedEvent to Kafka: {}", e.getMessage(), e);
+                    try {
+                        kafkaTemplate.send(postLikedTopic, postId, postLikedEvent);
+                        log.info("Published PostLikedEvent to Kafka topic: {} for postId: {}", postLikedTopic, postId);
+                    } catch (Exception e) {
+                        log.error("Failed to publish PostLikedEvent to Kafka: {}", e.getMessage(), e);
+                    }
                 }
+            } catch (DataIntegrityViolationException e) {
+                log.warn("Concurrent duplicate like ignored gracefully for postId={}, userId={}", postId, userId);
+                newLikedState = true;
             }
         }
 
@@ -76,26 +86,30 @@ public class PostLikeService {
             return;
         }
 
-        PostLike postLike = new PostLike();
-        postLike.setPostId(postId);
-        postLike.setUserId(userId);
-        postLikeRepository.save(postLike);
+        try {
+            PostLike postLike = new PostLike();
+            postLike.setPostId(postId);
+            postLike.setUserId(userId);
+            postLikeRepository.save(postLike);
 
-        log.info("Post liked successfully. postId={}, userId={}", postId, userId);
+            log.info("Post liked successfully. postId={}, userId={}", postId, userId);
 
-        if (!userId.equals(post.getUserId())) {
-            PostLikedEvent postLikedEvent = PostLikedEvent.builder()
-                    .postId(postId)
-                    .likedByUserId(userId)
-                    .creatorId(post.getUserId())
-                    .build();
+            if (!userId.equals(post.getUserId())) {
+                PostLikedEvent postLikedEvent = PostLikedEvent.builder()
+                        .postId(postId)
+                        .likedByUserId(userId)
+                        .creatorId(post.getUserId())
+                        .build();
 
-            try {
-                kafkaTemplate.send(postLikedTopic, postId, postLikedEvent);
-                log.info("Published PostLikedEvent to Kafka topic: {} for postId: {}", postLikedTopic, postId);
-            } catch (Exception e) {
-                log.error("Failed to publish PostLikedEvent to Kafka: {}", e.getMessage(), e);
+                try {
+                    kafkaTemplate.send(postLikedTopic, postId, postLikedEvent);
+                    log.info("Published PostLikedEvent to Kafka topic: {} for postId: {}", postLikedTopic, postId);
+                } catch (Exception e) {
+                    log.error("Failed to publish PostLikedEvent to Kafka: {}", e.getMessage(), e);
+                }
             }
+        } catch (DataIntegrityViolationException e) {
+            log.info("Concurrent like duplicate handled idempotently for postId={}, userId={}", postId, userId);
         }
     }
 
@@ -106,8 +120,12 @@ public class PostLikeService {
         }
 
         if (postLikeRepository.existsByPostIdAndUserId(postId, userId)) {
-            postLikeRepository.deleteByPostIdAndUserId(postId, userId);
-            log.info("Post unliked successfully. postId={}, userId={}", postId, userId);
+            try {
+                postLikeRepository.deleteByPostIdAndUserId(postId, userId);
+                log.info("Post unliked successfully. postId={}, userId={}", postId, userId);
+            } catch (Exception e) {
+                log.warn("Concurrent unlike handled for postId={}, userId={}: {}", postId, userId, e.getMessage());
+            }
         } else {
             log.info("User had not liked postId={}, userId={}. Idempotent success.", postId, userId);
         }

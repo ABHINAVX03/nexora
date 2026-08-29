@@ -1,6 +1,7 @@
 package com.abhinav.linkedin.posts_service.controller;
 
 import com.abhinav.linkedin.posts_service.auth.UserContextFilter;
+import com.abhinav.linkedin.posts_service.dto.LikeStatusDto;
 import com.abhinav.linkedin.posts_service.exception.GlobalExceptionHandler;
 import com.abhinav.linkedin.posts_service.service.PostLikeService;
 import org.junit.jupiter.api.BeforeEach;
@@ -9,8 +10,8 @@ import org.mockito.Mockito;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -34,13 +35,15 @@ class LikesControllerTest {
 
     @Test
     void testLikePost_withValidUserHeader_success() throws Exception {
-        doNothing().when(postLikeService).likePost(10L, 55L);
+        when(postLikeService.toggleLike(10L, 55L)).thenReturn(new LikeStatusDto(10L, true, 1L));
 
         mockMvc.perform(post("/likes/10")
                         .header("X-User-Id", "55"))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hasLiked").value(true))
+                .andExpect(jsonPath("$.likesCount").value(1));
 
-        verify(postLikeService).likePost(10L, 55L);
+        verify(postLikeService).toggleLike(10L, 55L);
     }
 
     @Test
@@ -52,11 +55,13 @@ class LikesControllerTest {
 
     @Test
     void testUnlikePost_withValidUserHeader_success() throws Exception {
-        doNothing().when(postLikeService).unlikePost(10L, 55L);
+        when(postLikeService.getLikeStatus(10L, 55L)).thenReturn(new LikeStatusDto(10L, false, 0L));
 
         mockMvc.perform(delete("/likes/10")
                         .header("X-User-Id", "55"))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hasLiked").value(false))
+                .andExpect(jsonPath("$.likesCount").value(0));
 
         verify(postLikeService).unlikePost(10L, 55L);
     }

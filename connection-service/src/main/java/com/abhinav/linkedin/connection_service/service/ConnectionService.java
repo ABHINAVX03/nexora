@@ -64,6 +64,13 @@ public class ConnectionService {
             throw new BadRequestException("Connection request is already pending");
         }
 
+        // Prevent cross-request collision
+        if (personRepository.hasPendingRequest(receiverId, senderId)) {
+            log.info("Cross connection request detected: auto-accepting connection between {} and {}", senderId, receiverId);
+            acceptConnectionRequest(senderId, receiverId);
+            return;
+        }
+
         personRepository.sendConnectionRequest(senderId, receiverId);
         log.info("Saved connection request from {} to {}", senderId, receiverId);
 
@@ -116,5 +123,27 @@ public class ConnectionService {
 
         personRepository.rejectConnectionRequest(senderId, receiverId);
         log.info("Rejected connection request from {} to {}", senderId, receiverId);
+    }
+
+    public void cancelConnectionRequest(Long senderId, Long receiverId) {
+        log.info("User {} cancelling outgoing connection request to {}", senderId, receiverId);
+
+        if (!personRepository.hasPendingRequest(senderId, receiverId)) {
+            throw new ResourceNotFoundException("No pending connection request found to user: " + receiverId);
+        }
+
+        personRepository.cancelConnectionRequest(senderId, receiverId);
+        log.info("Cancelled connection request from {} to {}", senderId, receiverId);
+    }
+
+    public void removeConnection(Long userId1, Long userId2) {
+        log.info("Removing 1st-degree connection between {} and {}", userId1, userId2);
+
+        if (!personRepository.areConnected(userId1, userId2)) {
+            throw new BadRequestException("You are not currently connected to this user");
+        }
+
+        personRepository.removeConnection(userId1, userId2);
+        log.info("Removed connection between {} and {}", userId1, userId2);
     }
 }

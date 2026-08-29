@@ -74,6 +74,9 @@ export interface PostDto {
   repostedPost?: PostDto;
   userId: number;
   poll?: PollDto;
+  hasLiked?: boolean;
+  likesCount?: number;
+  commentsCount?: number;
   createdAt: string;
 }
 
@@ -103,6 +106,7 @@ export interface Post {
   authorAvatar?: string;
   hasLiked?: boolean;
   likesCount?: number;
+  commentsCount?: number;
 }
 
 export interface LikeStatusDto {

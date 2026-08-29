@@ -47,7 +47,7 @@ class PostServiceConsumerTest {
 
         consumer.handlePostCreatedEvent(event);
 
-        verify(notificationService).sendNotification(eq(2L), contains("created a new post"), eq("POST_CREATED"));
+        verify(notificationService).sendNotification(eq(2L), contains("shared a post"), eq("POST_CREATED"), eq(10L));
     }
 
     @Test
@@ -60,7 +60,7 @@ class PostServiceConsumerTest {
 
         consumer.handlePostLikedEvent(event);
 
-        verify(notificationService).sendNotification(eq(1L), contains("User 2 liked your post"), eq("POST_LIKED"));
+        verify(notificationService).sendNotification(eq(1L), contains("User 2 liked your post"), eq("POST_LIKED"), eq(10L));
     }
 
     @Test
@@ -73,7 +73,7 @@ class PostServiceConsumerTest {
 
         consumer.handlePostLikedEvent(event);
 
-        verify(notificationService, never()).sendNotification(any(), any(), any());
+        verify(notificationService, never()).sendNotification(any(), any(), any(), any());
     }
 
     @Test
@@ -87,7 +87,7 @@ class PostServiceConsumerTest {
 
         consumer.handleConnectionRequestEvent(event);
 
-        verify(notificationService).sendNotification(eq(2L), contains("User 1 sent you a connection request"), eq("CONNECTION_REQUEST"));
+        verify(notificationService).sendNotification(eq(2L), contains("User 1 sent you a connection request"), eq("CONNECTION_REQUEST"), eq(1L));
     }
 
     @Test
@@ -101,7 +101,7 @@ class PostServiceConsumerTest {
 
         consumer.handleConnectionAcceptedEvent(event);
 
-        verify(notificationService).sendNotification(eq(1L), contains("User 2 accepted your connection request"), eq("CONNECTION_ACCEPTED"));
+        verify(notificationService).sendNotification(eq(1L), contains("User 2 accepted your connection request"), eq("CONNECTION_ACCEPTED"), eq(2L));
     }
 
     @Test

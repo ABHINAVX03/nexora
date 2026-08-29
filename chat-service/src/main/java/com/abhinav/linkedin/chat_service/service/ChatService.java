@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -96,9 +97,9 @@ public class ChatService {
         List<ConversationSummaryDto> summaries = new ArrayList<>();
 
         for (Long partnerId : partnerIds) {
-            List<ChatMessage> history = chatMessageRepository.findConversationHistory(userId, partnerId);
-            if (!history.isEmpty()) {
-                ChatMessage last = history.get(history.size() - 1);
+            Optional<ChatMessage> latestOpt = chatMessageRepository.findLatestMessageBetween(userId, partnerId);
+            if (latestOpt.isPresent()) {
+                ChatMessage last = latestOpt.get();
                 long unread = chatMessageRepository.countUnreadBetween(partnerId, userId);
                 UserPresenceDto partnerPresence = userPresenceService.getPresence(partnerId);
 

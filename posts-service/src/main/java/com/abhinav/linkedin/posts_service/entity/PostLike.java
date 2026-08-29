@@ -12,6 +12,9 @@ import java.time.LocalDateTime;
 @Setter
 @Table(
     name = "posts_likes",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_post_likes_post_user", columnNames = {"postId", "userId"})
+    },
     indexes = {
         @Index(name = "idx_post_likes_post_user", columnList = "postId, userId", unique = true),
         @Index(name = "idx_post_likes_post", columnList = "postId")

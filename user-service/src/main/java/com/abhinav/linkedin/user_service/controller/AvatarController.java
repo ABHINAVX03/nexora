@@ -1,8 +1,11 @@
 package com.abhinav.linkedin.user_service.controller;
 
 import com.abhinav.linkedin.user_service.dto.UserDto;
+import com.abhinav.linkedin.user_service.exception.BadRequestException;
+import com.abhinav.linkedin.user_service.exception.ForbiddenException;
 import com.abhinav.linkedin.user_service.exception.ResourceNotFoundException;
 import com.abhinav.linkedin.user_service.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.FileSystemResource;
@@ -40,11 +43,37 @@ public class AvatarController {
         }
     }
 
+    private Long extractCallerUserId(HttpServletRequest request) {
+        if (request != null) {
+            String header = request.getHeader("X-User-Id");
+            if (header == null || header.isBlank()) {
+                header = request.getHeader("X-UserId");
+            }
+            if (header != null && !header.isBlank()) {
+                try {
+                    return Long.parseLong(header.trim());
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+        return null;
+    }
+
     @PostMapping("/{userId}/avatar/upload")
     public ResponseEntity<UserDto> uploadAvatar(
             @PathVariable Long userId,
-            @RequestParam("file") MultipartFile file
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest request
     ) {
+        Long callerId = extractCallerUserId(request);
+        if (callerId == null) {
+            throw new BadRequestException("Authentication required to upload avatar");
+        }
+        if (!callerId.equals(userId)) {
+            log.warn("IDOR attempt: caller {} attempted to upload avatar for user {}", callerId, userId);
+            throw new ForbiddenException("You are not authorized to change another member's avatar");
+        }
+
         UserDto updatedUser = authService.uploadAvatar(userId, file);
         return ResponseEntity.ok(updatedUser);
     }
@@ -57,8 +86,18 @@ public class AvatarController {
     @PostMapping("/{userId}/banner/upload")
     public ResponseEntity<UserDto> uploadBanner(
             @PathVariable Long userId,
-            @RequestParam("file") MultipartFile file
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest request
     ) {
+        Long callerId = extractCallerUserId(request);
+        if (callerId == null) {
+            throw new BadRequestException("Authentication required to upload banner");
+        }
+        if (!callerId.equals(userId)) {
+            log.warn("IDOR attempt: caller {} attempted to upload banner for user {}", callerId, userId);
+            throw new ForbiddenException("You are not authorized to change another member's banner");
+        }
+
         UserDto updatedUser = authService.uploadBanner(userId, file);
         return ResponseEntity.ok(updatedUser);
     }

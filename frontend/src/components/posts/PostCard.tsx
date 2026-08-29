@@ -194,7 +194,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
     }
   }, [bookmarkStatus]);
 
-  // Fetch comment count for this post
+  // Fetch comment count for this post (only when drawer is expanded)
   const { data: comments = [] } = useQuery<CommentDto[]>({
     queryKey: ['post-comments', post.id],
     queryFn: async () => {
@@ -204,8 +204,11 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
         return [];
       }
     },
+    enabled: isCommentsOpen,
     staleTime: 10000,
   });
+
+  const totalCommentsCount = isCommentsOpen ? comments.length : (post.commentsCount ?? 0);
 
   const authorName = author?.name || post.authorName || 'Nexora Member';
   const authorHeadline = author?.headline || 'Member @ Nexora';
@@ -614,7 +617,12 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
           <div className="flex items-center gap-1 sm:gap-2">
             {/* Like Toggle Button (+1 / -1) */}
             <button
-              onClick={() => toggleLikeMutation.mutate()}
+              onClick={() => {
+                if (!toggleLikeMutation.isPending) {
+                  toggleLikeMutation.mutate();
+                }
+              }}
+              disabled={toggleLikeMutation.isPending}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all select-none ${
                 hasLiked
                   ? 'text-rose-600 bg-rose-50/80 dark:bg-rose-950/40 dark:text-rose-400'
@@ -651,9 +659,9 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
             >
               <MessageSquare className="w-4 h-4" />
               <span>Comment</span>
-              {comments.length > 0 && (
+              {totalCommentsCount > 0 && (
                 <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-dark-elevated text-light-muted dark:text-dark-muted font-bold ml-0.5">
-                  {comments.length}
+                  {totalCommentsCount}
                 </span>
               )}
             </button>

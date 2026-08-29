@@ -233,6 +233,7 @@ public class PostService {
             pollRepository.delete(poll);
         });
 
+        commentRepository.deleteByPostId(postId);
         postBookmarkRepository.deleteByPostId(postId);
         postLikeRepository.deleteByPostId(postId);
         postRepository.delete(post);

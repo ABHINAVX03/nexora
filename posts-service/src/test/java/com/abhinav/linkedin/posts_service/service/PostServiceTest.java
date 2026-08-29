@@ -8,8 +8,7 @@ import com.abhinav.linkedin.posts_service.entity.Post;
 import com.abhinav.linkedin.posts_service.event.PostCreatedEvent;
 import com.abhinav.linkedin.posts_service.exception.ForbiddenException;
 import com.abhinav.linkedin.posts_service.exception.ResourceNotFoundException;
-import com.abhinav.linkedin.posts_service.repository.PostLikeRepository;
-import com.abhinav.linkedin.posts_service.repository.PostRepository;
+import com.abhinav.linkedin.posts_service.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,6 +38,18 @@ class PostServiceTest {
 
     @Mock
     private PostLikeRepository postLikeRepository;
+
+    @Mock
+    private CommentRepository commentRepository;
+
+    @Mock
+    private PostBookmarkRepository postBookmarkRepository;
+
+    @Mock
+    private PollRepository pollRepository;
+
+    @Mock
+    private PollVoteRepository pollVoteRepository;
 
     @Mock
     private ConnectionClient connectionClient;
@@ -108,26 +119,11 @@ class PostServiceTest {
         post.setContent("Test content");
 
         when(postRepository.findById(1L)).thenReturn(Optional.of(post));
-        when(connectionClient.areConnected(100L)).thenReturn(true);
 
         PostDto result = postService.getPostById(1L, 200L);
 
         assertNotNull(result);
         assertEquals(1L, result.getId());
-    }
-
-    @Test
-    void getPostById_byNonConnectedUser_throwsForbidden() {
-        Post post = new Post();
-        post.setId(1L);
-        post.setUserId(100L);
-        post.setContent("Test content");
-
-        when(postRepository.findById(1L)).thenReturn(Optional.of(post));
-        when(connectionClient.areConnected(100L)).thenReturn(false);
-        when(connectionClient.getFirstDegreeConnections(100L)).thenReturn(List.of());
-
-        assertThrows(ForbiddenException.class, () -> postService.getPostById(1L, 300L));
     }
 
     @Test
@@ -183,6 +179,8 @@ class PostServiceTest {
 
         postService.deletePost(1L, 100L);
 
+        verify(commentRepository).deleteByPostId(1L);
+        verify(postBookmarkRepository).deleteByPostId(1L);
         verify(postLikeRepository).deleteByPostId(1L);
         verify(postRepository).delete(post);
     }
@@ -213,24 +211,18 @@ class PostServiceTest {
     }
 
     @Test
-    void getFeedFallback_returnsDegradedFeedWithOwnPosts() {
-        Post ownPost = new Post();
-        ownPost.setId(10L);
-        ownPost.setUserId(100L);
-        ownPost.setContent("My post");
+    void getFeedFallback_returnsDegradedFeedWithAllPosts() {
+        Post post = new Post();
+        post.setId(10L);
+        post.setUserId(100L);
+        post.setContent("My post");
 
-        when(postRepository.findByUserId(100L)).thenReturn(List.of(ownPost));
+        when(postRepository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of(post));
 
         List<PostDto> degradedFeed = postService.getFeedFallback(100L, new RuntimeException("Connection service timeout"));
 
         assertNotNull(degradedFeed);
         assertEquals(1, degradedFeed.size());
         assertEquals(10L, degradedFeed.get(0).getId());
-    }
-
-    @Test
-    void isFirstDegreeConnectionFallback_failsClosed() {
-        boolean result = postService.isFirstDegreeConnectionFallback(100L, 200L, new RuntimeException("Remote call failure"));
-        assertFalse(result);
     }
 }

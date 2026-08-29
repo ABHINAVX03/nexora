@@ -3,7 +3,6 @@ package com.abhinav.linkedin.posts_service.service;
 import com.abhinav.linkedin.posts_service.entity.Post;
 import com.abhinav.linkedin.posts_service.entity.PostLike;
 import com.abhinav.linkedin.posts_service.event.PostLikedEvent;
-import com.abhinav.linkedin.posts_service.exception.BadRequestException;
 import com.abhinav.linkedin.posts_service.exception.ResourceNotFoundException;
 import com.abhinav.linkedin.posts_service.repository.PostLikeRepository;
 import com.abhinav.linkedin.posts_service.repository.PostRepository;
@@ -23,9 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class PostLikeServiceTest {
@@ -37,7 +34,7 @@ class PostLikeServiceTest {
     private PostRepository postRepository;
 
     @Mock
-    private KafkaTemplate<Long, PostLikedEvent> kafkaTemplate;
+    private KafkaTemplate<Long, Object> kafkaTemplate;
 
     @InjectMocks
     private PostLikeService postLikeService;
@@ -82,7 +79,7 @@ class PostLikeServiceTest {
     }
 
     @Test
-    void likePost_alreadyLiked_throwsException() {
+    void likePost_alreadyLiked_idempotentSuccess() {
         Post post = new Post();
         post.setId(10L);
         post.setUserId(5L);
@@ -90,7 +87,9 @@ class PostLikeServiceTest {
         when(postRepository.findById(10L)).thenReturn(Optional.of(post));
         when(postLikeRepository.existsByPostIdAndUserId(10L, 20L)).thenReturn(true);
 
-        assertThrows(BadRequestException.class, () -> postLikeService.likePost(10L, 20L));
+        postLikeService.likePost(10L, 20L);
+
+        verify(postLikeRepository, never()).save(any(PostLike.class));
         verify(kafkaTemplate, never()).send(any(), any(), any());
     }
 

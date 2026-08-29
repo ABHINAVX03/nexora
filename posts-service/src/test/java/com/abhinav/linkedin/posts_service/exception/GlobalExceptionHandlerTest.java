@@ -2,6 +2,7 @@ package com.abhinav.linkedin.posts_service.exception;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
@@ -42,6 +43,16 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/not-found")
         public void throwNotFound() {
             throw new ResourceNotFoundException("Post not found with id: 99");
+        }
+
+        @GetMapping("/forbidden")
+        public void throwForbidden() {
+            throw new ForbiddenException("Not authorized");
+        }
+
+        @GetMapping("/conflict")
+        public void throwConflict() {
+            throw new DataIntegrityViolationException("Duplicate key violation");
         }
 
         @GetMapping("/bad-request")
@@ -87,6 +98,21 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void handleForbiddenException_Returns403() throws Exception {
+        mockMvc.perform(get("/test/forbidden"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.message").value("Not authorized"));
+    }
+
+    @Test
+    void handleDataIntegrityViolationException_Returns409() throws Exception {
+        mockMvc.perform(get("/test/conflict"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409));
+    }
+
+    @Test
     void handleBadRequestException_Returns400WithExactMessage() throws Exception {
         mockMvc.perform(get("/test/bad-request"))
                 .andExpect(status().isBadRequest())
@@ -122,11 +148,11 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void handleGenericException_Returns500WithExactExceptionMessage() throws Exception {
+    void handleGenericException_Returns500SanitizedMessage() throws Exception {
         mockMvc.perform(get("/test/generic-error"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.status").value(500))
-                .andExpect(jsonPath("$.message").value("Database connection timeout"));
+                .andExpect(jsonPath("$.message").value("An unexpected internal error occurred. Please try again later."));
     }
 
     @Test
@@ -137,6 +163,6 @@ class GlobalExceptionHandlerTest {
         assertEquals(500, response.getStatusCode().value());
         assertNotNull(response.getBody());
         assertEquals(500, response.getBody().getStatus());
-        assertEquals("An unexpected error occurred: NullPointerException", response.getBody().getMessage());
+        assertEquals("An unexpected internal error occurred. Please try again later.", response.getBody().getMessage());
     }
 }

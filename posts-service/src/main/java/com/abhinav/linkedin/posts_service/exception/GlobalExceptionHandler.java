@@ -1,6 +1,7 @@
 package com.abhinav.linkedin.posts_service.exception;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -46,6 +47,21 @@ public class GlobalExceptionHandler {
         );
 
         return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> handleDataIntegrityViolationException(
+            DataIntegrityViolationException ex) {
+
+        log.warn("Data integrity conflict: {}", ex.getMessage());
+
+        ApiError error = new ApiError(
+                HttpStatus.CONFLICT.value(),
+                "A conflicting operation occurred or the record already exists.",
+                LocalDateTime.now()
+        );
+
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(BadRequestException.class)
@@ -168,15 +184,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleGenericException(
             Exception ex) {
 
-        log.error("Unhandled exception caught in GlobalExceptionHandler", ex);
-
-        String message = (ex.getMessage() != null && !ex.getMessage().isBlank())
-                ? ex.getMessage()
-                : "An unexpected error occurred: " + ex.getClass().getSimpleName();
+        log.error("Unhandled exception in posts-service:", ex);
 
         ApiError error = new ApiError(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                message,
+                "An unexpected internal error occurred. Please try again later.",
                 LocalDateTime.now()
         );
 

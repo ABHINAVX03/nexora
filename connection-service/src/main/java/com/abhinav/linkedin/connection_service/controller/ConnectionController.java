@@ -106,4 +106,26 @@ public class ConnectionController {
         connectionService.rejectConnectionRequest(receiverId, senderId);
         return ResponseEntity.ok().build();
     }
+
+    @DeleteMapping("/requests/{receiverId}")
+    @PostMapping("/cancel/{receiverId}")
+    public ResponseEntity<Void> cancelConnectionRequest(
+            @PathVariable Long receiverId,
+            HttpServletRequest request) {
+
+        Long senderId = requireUserId(request);
+        connectionService.cancelConnectionRequest(senderId, receiverId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{targetUserId}")
+    @PostMapping("/remove/{targetUserId}")
+    public ResponseEntity<Void> removeConnection(
+            @PathVariable Long targetUserId,
+            HttpServletRequest request) {
+
+        Long currentUserId = requireUserId(request);
+        connectionService.removeConnection(currentUserId, targetUserId);
+        return ResponseEntity.noContent().build();
+    }
 }

@@ -33,6 +33,21 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ApiError> handleForbiddenException(
+            ForbiddenException ex) {
+
+        log.warn("Forbidden access attempt: {}", ex.getMessage());
+
+        ApiError error = new ApiError(
+                HttpStatus.FORBIDDEN.value(),
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+
+        return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
+    }
+
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ApiError> handleBadRequestException(
             BadRequestException ex) {
@@ -153,15 +168,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleGenericException(
             Exception ex) {
 
-        log.error("Unhandled exception caught in GlobalExceptionHandler", ex);
-
-        String message = (ex.getMessage() != null && !ex.getMessage().isBlank())
-                ? ex.getMessage()
-                : "An unexpected error occurred: " + ex.getClass().getSimpleName();
+        log.error("Unhandled server exception:", ex);
 
         ApiError error = new ApiError(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                message,
+                "An unexpected internal error occurred. Please try again later.",
                 LocalDateTime.now()
         );
 

@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> {
@@ -20,6 +21,15 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
         ORDER BY m.createdAt ASC
         """)
     List<ChatMessage> findConversationHistory(@Param("u1") Long user1, @Param("u2") Long user2);
+
+    @Query("""
+        SELECT m FROM ChatMessage m
+        WHERE (m.senderId = :u1 AND m.recipientId = :u2)
+           OR (m.senderId = :u2 AND m.recipientId = :u1)
+        ORDER BY m.createdAt DESC
+        LIMIT 1
+        """)
+    Optional<ChatMessage> findLatestMessageBetween(@Param("u1") Long user1, @Param("u2") Long user2);
 
     @Query("""
         SELECT COUNT(m) FROM ChatMessage m
