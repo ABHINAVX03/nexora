@@ -112,6 +112,13 @@ public class AuthService {
     }
 
     public LoginResponseDto login(LoginRequestDto loginRequestDto) {
+        if (loginRequestDto == null || loginRequestDto.getEmail() == null || loginRequestDto.getEmail().trim().isBlank()) {
+            throw new BadRequestException("Email is required");
+        }
+        if (loginRequestDto.getPassword() == null || loginRequestDto.getPassword().trim().isBlank()) {
+            throw new BadRequestException("Password is required");
+        }
+
         String normalizedEmail = loginRequestDto.getEmail().trim().toLowerCase();
         User user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new ResourceNotFoundException(
