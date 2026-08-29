@@ -26,12 +26,35 @@ export const postApi = {
   },
 
   uploadMultipleMedia: async (files: File[]): Promise<string[]> => {
-    const formData = new FormData();
-    files.forEach((file) => {
-      formData.append('files', file);
+    if (!files || files.length === 0) return [];
+
+    // Try batch upload endpoint first
+    try {
+      const formData = new FormData();
+      files.forEach((file) => {
+        formData.append('files', file);
+      });
+      const response = await apiClient.post<{ urls?: string[]; url?: string }>('/posts/media/upload-multiple', formData);
+      if (response.data?.urls && Array.isArray(response.data.urls) && response.data.urls.length === files.length) {
+        return response.data.urls;
+      }
+      if (response.data?.urls && Array.isArray(response.data.urls) && response.data.urls.length > 0) {
+        return response.data.urls;
+      }
+    } catch (err) {
+      console.warn('Batch upload endpoint threw error, executing parallel individual uploads', err);
+    }
+
+    // Parallel individual uploads guarantees all files are uploaded individually without loss
+    const uploadPromises = files.map(async (file) => {
+      const singleFormData = new FormData();
+      singleFormData.append('file', file);
+      const res = await apiClient.post<{ url: string }>('/posts/media/upload', singleFormData);
+      return res.data.url;
     });
-    const response = await apiClient.post<{ urls: string[]; url: string }>('/posts/media/upload-multiple', formData);
-    return response.data.urls || (response.data.url ? [response.data.url] : []);
+
+    const results = await Promise.all(uploadPromises);
+    return results.filter((u): u is string => typeof u === 'string' && u.trim().length > 0);
   },
 
   createPost: async (data: PostCreateInput): Promise<PostDto> => {

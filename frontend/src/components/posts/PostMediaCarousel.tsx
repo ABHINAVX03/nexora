@@ -14,21 +14,25 @@ export const PostMediaCarousel: React.FC<PostMediaCarouselProps> = ({
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
-  if (!mediaUrls || mediaUrls.length === 0) {
+  const validUrls = (mediaUrls || []).filter(
+    (url): url is string => typeof url === 'string' && url.trim().length > 0
+  );
+
+  if (validUrls.length === 0) {
     return null;
   }
 
   // Single Image View
-  if (mediaUrls.length === 1) {
-    const singleUrl = mediaUrls[0];
+  if (validUrls.length === 1) {
+    const singleUrl = validUrls[0];
     return (
       <>
-        <div className="relative rounded-2xl overflow-hidden border border-light-border/70 dark:border-dark-border/70 bg-slate-100 dark:bg-dark-elevated max-h-[500px] group">
+        <div className="relative rounded-2xl overflow-hidden border border-light-border/70 dark:border-dark-border/70 bg-slate-100 dark:bg-dark-elevated max-h-[520px] group">
           <img
             src={singleUrl}
             alt={alt}
             loading="lazy"
-            className="w-full h-full max-h-[500px] object-cover hover:scale-[1.01] transition-transform duration-300 cursor-pointer"
+            className="w-full h-full max-h-[520px] object-cover hover:scale-[1.01] transition-transform duration-300 cursor-pointer"
             onClick={() => setIsLightboxOpen(true)}
           />
           <button
@@ -64,15 +68,15 @@ export const PostMediaCarousel: React.FC<PostMediaCarouselProps> = ({
     );
   }
 
-  // Multi-Image Carousel View (2 to 4 images)
+  // Multi-Image Carousel View (2 to 6 images)
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setCurrentIndex((prev) => (prev === 0 ? mediaUrls.length - 1 : prev - 1));
+    setCurrentIndex((prev) => (prev === 0 ? validUrls.length - 1 : prev - 1));
   };
 
   const handleNext = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setCurrentIndex((prev) => (prev === mediaUrls.length - 1 ? 0 : prev + 1));
+    setCurrentIndex((prev) => (prev === validUrls.length - 1 ? 0 : prev + 1));
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -84,39 +88,39 @@ export const PostMediaCarousel: React.FC<PostMediaCarouselProps> = ({
     const deltaX = e.changedTouches[0].clientX - touchStartX;
     if (deltaX > 40) {
       // Swiped right -> prev
-      setCurrentIndex((prev) => (prev === 0 ? mediaUrls.length - 1 : prev - 1));
+      setCurrentIndex((prev) => (prev === 0 ? validUrls.length - 1 : prev - 1));
     } else if (deltaX < -40) {
       // Swiped left -> next
-      setCurrentIndex((prev) => (prev === mediaUrls.length - 1 ? 0 : prev + 1));
+      setCurrentIndex((prev) => (prev === validUrls.length - 1 ? 0 : prev + 1));
     }
     setTouchStartX(null);
   };
 
   return (
-    <>
+    <div className="space-y-2">
+      {/* Main Active Image Display */}
       <div
-        className="relative rounded-2xl overflow-hidden border border-light-border/70 dark:border-dark-border/70 bg-slate-900 aspect-[16/10] sm:aspect-[16/9] max-h-[480px] group select-none"
+        className="relative rounded-2xl overflow-hidden border border-light-border/70 dark:border-dark-border/70 bg-slate-950 aspect-[16/10] sm:aspect-[16/9] max-h-[500px] group select-none flex items-center justify-center"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Active Image */}
         <img
-          src={mediaUrls[currentIndex]}
+          src={validUrls[currentIndex]}
           alt={`${alt} - ${currentIndex + 1}`}
           loading="lazy"
           className="w-full h-full object-contain cursor-pointer transition-opacity duration-300"
           onClick={() => setIsLightboxOpen(true)}
         />
 
-        {/* Counter Badge (e.g. 1/4) */}
-        <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-slate-950/70 backdrop-blur-md text-white text-xs font-bold shadow-xs">
-          {currentIndex + 1} / {mediaUrls.length}
+        {/* Counter Badge (e.g. 1 / 3) */}
+        <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-slate-950/80 backdrop-blur-md text-white text-xs font-bold shadow-md border border-white/10">
+          {currentIndex + 1} / {validUrls.length}
         </div>
 
         {/* Previous Button */}
         <button
           onClick={handlePrev}
-          className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-slate-900/70 text-white backdrop-blur-md opacity-80 group-hover:opacity-100 hover:bg-slate-900 transition-all hover:scale-110 shadow-md"
+          className="absolute left-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-slate-900/80 text-white backdrop-blur-md opacity-85 group-hover:opacity-100 hover:bg-slate-900 transition-all hover:scale-110 shadow-lg border border-white/10"
           title="Previous photo"
         >
           <ChevronLeft className="w-5 h-5" />
@@ -125,15 +129,15 @@ export const PostMediaCarousel: React.FC<PostMediaCarouselProps> = ({
         {/* Next Button */}
         <button
           onClick={handleNext}
-          className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-slate-900/70 text-white backdrop-blur-md opacity-80 group-hover:opacity-100 hover:bg-slate-900 transition-all hover:scale-110 shadow-md"
+          className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-slate-900/80 text-white backdrop-blur-md opacity-85 group-hover:opacity-100 hover:bg-slate-900 transition-all hover:scale-110 shadow-lg border border-white/10"
           title="Next photo"
         >
           <ChevronRight className="w-5 h-5" />
         </button>
 
         {/* Bottom Slide Indicator Dots */}
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-950/60 backdrop-blur-md">
-          {mediaUrls.map((_, idx) => (
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-950/70 backdrop-blur-md border border-white/10">
+          {validUrls.map((_, idx) => (
             <button
               key={idx}
               onClick={(e) => {
@@ -142,7 +146,7 @@ export const PostMediaCarousel: React.FC<PostMediaCarouselProps> = ({
               }}
               className={`h-2 rounded-full transition-all ${
                 currentIndex === idx
-                  ? 'w-5 bg-brand-400'
+                  ? 'w-5 bg-brand-400 shadow-sm'
                   : 'w-2 bg-white/50 hover:bg-white/80'
               }`}
               title={`Go to photo ${idx + 1}`}
@@ -151,10 +155,33 @@ export const PostMediaCarousel: React.FC<PostMediaCarouselProps> = ({
         </div>
       </div>
 
+      {/* Interactive Thumbnail Strip */}
+      {validUrls.length > 1 && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5">
+          {validUrls.map((url, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setCurrentIndex(idx);
+              }}
+              className={`relative shrink-0 w-16 h-12 rounded-xl overflow-hidden border-2 transition-all ${
+                currentIndex === idx
+                  ? 'border-brand-500 ring-2 ring-brand-500/30 scale-105'
+                  : 'border-transparent opacity-60 hover:opacity-100'
+              }`}
+            >
+              <img src={url} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Fullscreen Lightbox Modal */}
       {isLightboxOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-md animate-fade-in"
           onClick={() => setIsLightboxOpen(false)}
         >
           <button
@@ -165,13 +192,13 @@ export const PostMediaCarousel: React.FC<PostMediaCarouselProps> = ({
           </button>
 
           <div
-            className="relative max-w-[90vw] max-h-[90vh] flex items-center justify-center"
+            className="relative max-w-[92vw] max-h-[92vh] flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
             <img
-              src={mediaUrls[currentIndex]}
+              src={validUrls[currentIndex]}
               alt={`${alt} - ${currentIndex + 1}`}
-              className="max-w-[90vw] max-h-[85vh] object-contain rounded-2xl shadow-2xl animate-scale-in"
+              className="max-w-[92vw] max-h-[85vh] object-contain rounded-2xl shadow-2xl animate-scale-in"
             />
 
             <button
@@ -190,6 +217,7 @@ export const PostMediaCarousel: React.FC<PostMediaCarouselProps> = ({
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 };
+
