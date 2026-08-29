@@ -3,6 +3,8 @@ package com.abhinav.linkedin.posts_service.dto;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class PostCreateRequestDto {
 
@@ -11,5 +13,10 @@ public class PostCreateRequestDto {
 
     private String mediaUrl;
 
+    private List<String> mediaUrls;
+
+    private Long repostOfPostId;
+
     private PollCreateRequestDto poll;
 }
+

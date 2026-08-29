@@ -72,6 +72,52 @@ public class MediaController {
         return ResponseEntity.ok(Map.of("url", fileUrl));
     }
 
+    @PostMapping("/upload-multiple")
+    public ResponseEntity<Map<String, Object>> uploadMultiplePostMedia(@RequestParam("files") List<MultipartFile> files) {
+        if (files == null || files.isEmpty()) {
+            throw new BadRequestException("No files were uploaded");
+        }
+
+        if (files.size() > 4) {
+            throw new BadRequestException("Maximum 4 images allowed per post");
+        }
+
+        List<String> uploadedUrls = new ArrayList<>();
+
+        for (MultipartFile file : files) {
+            if (file.isEmpty()) continue;
+
+            if (file.getSize() > 15 * 1024 * 1024) {
+                throw new BadRequestException("File '" + file.getOriginalFilename() + "' exceeds 15MB size limit");
+            }
+
+            String originalFilename = file.getOriginalFilename();
+            String extension = "jpg";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+            }
+
+            if (!ALLOWED_EXTENSIONS.contains(extension)) {
+                throw new BadRequestException("Unsupported image format: " + extension + ". Allowed: JPG, PNG, WEBP, GIF");
+            }
+
+            String safeFilename = UUID.randomUUID().toString().replace("-", "") + "." + extension;
+            try {
+                String fileUrl = s3StorageService.uploadFile("posts", safeFilename, file);
+                uploadedUrls.add(fileUrl);
+            } catch (IOException e) {
+                log.error("Failed to upload image: {}", e.getMessage(), e);
+                throw new BadRequestException("Failed to upload image: " + e.getMessage());
+            }
+        }
+
+        log.info("Uploaded {} media files to S3 / CloudFront CDN", uploadedUrls.size());
+        return ResponseEntity.ok(Map.of(
+                "urls", uploadedUrls,
+                "url", uploadedUrls.isEmpty() ? "" : uploadedUrls.get(0)
+        ));
+    }
+
     @GetMapping("/files/{filename}")
     public ResponseEntity<Resource> getMediaFile(@PathVariable String filename) {
         // Prevent path traversal

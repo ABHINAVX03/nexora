@@ -20,8 +20,8 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPostCreated }) => 
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [content, setContent] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
   // Poll state
@@ -30,30 +30,41 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPostCreated }) => 
   const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
 
-    if (!file.type.startsWith('image/')) {
-      showToast('error', 'Invalid File', 'Please select an image file (PNG, JPG, WEBP, GIF).');
+    if (selectedFiles.length + files.length > 4) {
+      showToast('error', 'Too Many Files', 'You can upload a maximum of 4 images per post.');
       return;
     }
 
-    if (file.size > 15 * 1024 * 1024) {
-      showToast('error', 'File Too Large', 'Maximum image size is 15MB.');
-      return;
+    const validFiles: File[] = [];
+    const validPreviews: string[] = [];
+
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) {
+        showToast('error', 'Invalid File', 'Please select an image file (PNG, JPG, WEBP, GIF).');
+        continue;
+      }
+      if (file.size > 15 * 1024 * 1024) {
+        showToast('error', 'File Too Large', `File '${file.name}' exceeds 15MB limit.`);
+        continue;
+      }
+      validFiles.push(file);
+      validPreviews.push(URL.createObjectURL(file));
     }
 
-    setSelectedFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
+    setSelectedFiles((prev) => [...prev, ...validFiles]);
+    setPreviewUrls((prev) => [...prev, ...validPreviews]);
     setIsExpanded(true);
   };
 
-  const removeSelectedFile = () => {
-    setSelectedFile(null);
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
+  const removeSelectedFile = (index: number) => {
+    if (previewUrls[index]) {
+      URL.revokeObjectURL(previewUrls[index]);
     }
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+    setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -79,7 +90,9 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPostCreated }) => 
 
   const resetForm = () => {
     setContent('');
-    removeSelectedFile();
+    previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    setSelectedFiles([]);
+    setPreviewUrls([]);
     setShowPollBuilder(false);
     setPollQuestion('');
     setPollOptions(['', '']);
@@ -89,26 +102,32 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPostCreated }) => 
   const createPostMutation = useMutation({
     mutationFn: async ({
       text,
-      file,
+      files,
       pollData,
     }: {
       text: string;
-      file: File | null;
+      files: File[];
       pollData: { question: string; options: string[] } | null;
     }) => {
+      let mediaUrls: string[] | undefined;
       let mediaUrl: string | undefined;
-      if (file) {
+
+      if (files && files.length > 0) {
         setIsUploading(true);
         try {
-          const uploadRes = await postApi.uploadMedia(file);
-          mediaUrl = uploadRes.url;
+          mediaUrls = await postApi.uploadMultipleMedia(files);
+          if (mediaUrls && mediaUrls.length > 0) {
+            mediaUrl = mediaUrls[0];
+          }
         } finally {
           setIsUploading(false);
         }
       }
+
       return await postApi.createPost({
         content: text,
         mediaUrl,
+        mediaUrls,
         poll: pollData ? pollData : undefined,
       });
     },
@@ -120,35 +139,42 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPostCreated }) => 
       if (onPostCreated) onPostCreated();
     },
     onError: (err: any) => {
-      const msg = err?.response?.data?.message || 'Could not create post. Please try again.';
-      showToast('error', 'Failed to publish', msg);
+      showToast(
+        'error',
+        'Post Failed',
+        err.response?.data?.message || 'Failed to publish post. Please try again.'
+      );
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    let validPoll: { question: string; options: string[] } | null = null;
-    if (showPollBuilder) {
-      const q = pollQuestion.trim() || content.trim();
-      const validOpts = pollOptions.map((o) => o.trim()).filter((o) => o.length > 0);
-      if (!q) {
-        showToast('warning', 'Poll Question Required', 'Please enter a question for your poll.');
-        return;
-      }
-      if (validOpts.length < 2) {
-        showToast('warning', 'More Options Needed', 'Please provide at least 2 poll options.');
-        return;
-      }
-      validPoll = { question: q, options: validOpts };
+    if (!content.trim() && selectedFiles.length === 0 && !showPollBuilder) {
+      showToast('warning', 'Empty Post', 'Please write something or attach a photo.');
+      return;
     }
 
-    if (!content.trim() && !selectedFile && !validPoll) return;
+    let pollData = null;
+    if (showPollBuilder) {
+      if (!pollQuestion.trim()) {
+        showToast('error', 'Poll Question Required', 'Please provide a question for your poll.');
+        return;
+      }
+      const validOpts = pollOptions.filter((opt) => opt.trim().length > 0);
+      if (validOpts.length < 2) {
+        showToast('error', 'Poll Options Required', 'Please provide at least 2 valid poll options.');
+        return;
+      }
+      pollData = {
+        question: pollQuestion.trim(),
+        options: validOpts.map((o) => o.trim()),
+      };
+    }
 
     createPostMutation.mutate({
-      text: content.trim() || (validPoll ? validPoll.question : ''),
-      file: selectedFile,
-      pollData: validPoll,
+      text: content.trim(),
+      files: selectedFiles,
+      pollData,
     });
   };
 
@@ -172,22 +198,42 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPostCreated }) => 
           </div>
         </div>
 
-        {/* Media Preview Box */}
-        {previewUrl && (
-          <div className="relative rounded-xl overflow-hidden border border-light-border dark:border-dark-border bg-slate-100 dark:bg-dark-elevated max-h-60 flex items-center justify-center">
-            <img
-              src={previewUrl}
-              alt="Upload preview"
-              className="w-full h-full max-h-60 object-cover"
-            />
-            <button
-              type="button"
-              onClick={removeSelectedFile}
-              className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 hover:bg-black/80 text-white transition-colors"
-              title="Remove image"
-            >
-              <X className="w-4 h-4" />
-            </button>
+        {/* Multi-Photo Preview Grid */}
+        {previewUrls.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs font-semibold text-light-muted dark:text-dark-muted px-1">
+              <span>Attached Photos ({previewUrls.length}/4)</span>
+              {previewUrls.length > 1 && (
+                <span className="text-[11px] text-brand-600 dark:text-brand-400 font-normal">
+                  Will be displayed as an interactive carousel
+                </span>
+              )}
+            </div>
+            <div className={`grid gap-2 ${previewUrls.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+              {previewUrls.map((url, idx) => (
+                <div
+                  key={idx}
+                  className="relative rounded-2xl overflow-hidden border border-light-border dark:border-dark-border bg-slate-900 aspect-[16/10] max-h-56 group"
+                >
+                  <img
+                    src={url}
+                    alt={`Preview ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-slate-950/70 text-white text-[10px] font-bold">
+                    {idx + 1}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeSelectedFile(idx)}
+                    className="absolute top-2 right-2 p-1.5 rounded-xl bg-slate-950/80 hover:bg-rose-600 text-white transition-colors shadow-md"
+                    title="Remove image"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -260,6 +306,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPostCreated }) => 
           ref={fileInputRef}
           type="file"
           accept="image/*"
+          multiple
           className="hidden"
           onChange={handleFileChange}
         />
@@ -273,7 +320,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPostCreated }) => 
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-light-muted dark:text-dark-muted hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-dark-elevated transition-colors"
             >
               <ImageIcon className="w-4 h-4 text-emerald-500" />
-              <span>Photo</span>
+              <span>Photo {selectedFiles.length > 0 ? `(${selectedFiles.length}/4)` : ''}</span>
             </button>
 
             <button
@@ -308,7 +355,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPostCreated }) => 
               type="submit"
               variant="primary"
               size="sm"
-              disabled={(!content.trim() && !selectedFile && !showPollBuilder) || createPostMutation.isPending || isUploading}
+              disabled={(!content.trim() && selectedFiles.length === 0 && !showPollBuilder) || createPostMutation.isPending || isUploading}
               isLoading={createPostMutation.isPending || isUploading}
               leftIcon={<Send className="w-3.5 h-3.5" />}
             >

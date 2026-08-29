@@ -25,6 +25,15 @@ export const postApi = {
     return response.data;
   },
 
+  uploadMultipleMedia: async (files: File[]): Promise<string[]> => {
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append('files', file);
+    });
+    const response = await apiClient.post<{ urls: string[]; url: string }>('/posts/media/upload-multiple', formData);
+    return response.data.urls || (response.data.url ? [response.data.url] : []);
+  },
+
   createPost: async (data: PostCreateInput): Promise<PostDto> => {
     const response = await apiClient.post<PostDto>('/posts', data);
     return response.data;

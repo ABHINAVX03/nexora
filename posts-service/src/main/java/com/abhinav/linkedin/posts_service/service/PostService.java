@@ -55,8 +55,23 @@ public class PostService {
         Post post = new Post();
         post.setContent(postDto.getContent());
         post.setUserId(userId);
-        if (postDto.getMediaUrl() != null && !postDto.getMediaUrl().isBlank()) {
-            post.setMediaUrl(postDto.getMediaUrl().trim());
+
+        // Handle multi-image carousel or single image
+        if (postDto.getMediaUrls() != null && !postDto.getMediaUrls().isEmpty()) {
+            post.setMediaUrls(new ArrayList<>(postDto.getMediaUrls()));
+            post.setMediaUrl(postDto.getMediaUrls().get(0));
+        } else if (postDto.getMediaUrl() != null && !postDto.getMediaUrl().isBlank()) {
+            String singleUrl = postDto.getMediaUrl().trim();
+            post.setMediaUrl(singleUrl);
+            post.setMediaUrls(new ArrayList<>(List.of(singleUrl)));
+        }
+
+        // Handle Quote Repost if provided
+        if (postDto.getRepostOfPostId() != null) {
+            postRepository.findById(postDto.getRepostOfPostId()).ifPresent(origPost -> {
+                post.setRepostOfPostId(origPost.getId());
+                log.info("Post is a quote repost of postId: {}", origPost.getId());
+            });
         }
 
         Post savedPost = postRepository.save(post);
@@ -128,8 +143,12 @@ public class PostService {
         if (updateDto.getContent() != null) {
             post.setContent(updateDto.getContent());
         }
-        if (updateDto.getMediaUrl() != null) {
+        if (updateDto.getMediaUrls() != null && !updateDto.getMediaUrls().isEmpty()) {
+            post.setMediaUrls(new ArrayList<>(updateDto.getMediaUrls()));
+            post.setMediaUrl(updateDto.getMediaUrls().get(0));
+        } else if (updateDto.getMediaUrl() != null) {
             post.setMediaUrl(updateDto.getMediaUrl().trim());
+            post.setMediaUrls(new ArrayList<>(List.of(updateDto.getMediaUrl().trim())));
         }
         Post updatedPost = postRepository.save(post);
         return mapToDtoWithPoll(updatedPost, currentUserId);
@@ -297,6 +316,31 @@ public class PostService {
 
     private PostDto mapToDtoWithPoll(Post post, Long currentUserId) {
         PostDto dto = modelMapper.map(post, PostDto.class);
+
+        // Populate mediaUrls list
+        if (post.getMediaUrls() != null && !post.getMediaUrls().isEmpty()) {
+            dto.setMediaUrls(new ArrayList<>(post.getMediaUrls()));
+        } else if (post.getMediaUrl() != null && !post.getMediaUrl().isBlank()) {
+            dto.setMediaUrls(new ArrayList<>(List.of(post.getMediaUrl())));
+        } else {
+            dto.setMediaUrls(new ArrayList<>());
+        }
+
+        // Populate Reposted Post if this is a quote/repost
+        if (post.getRepostOfPostId() != null) {
+            postRepository.findById(post.getRepostOfPostId()).ifPresent(origPost -> {
+                PostDto origDto = modelMapper.map(origPost, PostDto.class);
+                if (origPost.getMediaUrls() != null && !origPost.getMediaUrls().isEmpty()) {
+                    origDto.setMediaUrls(new ArrayList<>(origPost.getMediaUrls()));
+                } else if (origPost.getMediaUrl() != null) {
+                    origDto.setMediaUrls(new ArrayList<>(List.of(origPost.getMediaUrl())));
+                }
+                Optional<Poll> origPollOpt = pollRepository.findByPostId(origPost.getId());
+                origPollOpt.ifPresent(p -> origDto.setPoll(buildPollDto(p, currentUserId)));
+                dto.setRepostedPost(origDto);
+            });
+        }
+
         Optional<Poll> pollOpt = pollRepository.findByPostId(post.getId());
         pollOpt.ifPresent(poll -> dto.setPoll(buildPollDto(poll, currentUserId)));
         return dto;

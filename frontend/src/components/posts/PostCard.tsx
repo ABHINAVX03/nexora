@@ -13,6 +13,7 @@ import {
   Bookmark,
   BarChart2,
   CheckCircle2,
+  Repeat,
 } from 'lucide-react';
 import { Post, UserDto, CommentDto, LikeStatusDto, PollDto } from '../../types';
 import { Avatar } from '../ui/Avatar';
@@ -20,6 +21,8 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Dropdown } from '../ui/Dropdown';
 import { CommentSection } from './CommentSection';
+import { PostMediaCarousel } from './PostMediaCarousel';
+import { QuotePostModal } from './QuotePostModal';
 import { formatTimeAgo } from '../../utils/formatters';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -27,6 +30,65 @@ import { postApi } from '../../api/postApi';
 import { userApi } from '../../api/userApi';
 import { commentApi } from '../../api/commentApi';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+// Embedded Quote Card Sub-component
+const EmbeddedQuoteCard: React.FC<{ repostedPost: Post }> = ({ repostedPost }) => {
+  const navigate = useNavigate();
+  const { data: origAuthor } = useQuery<UserDto>({
+    queryKey: ['user-info', repostedPost.userId],
+    queryFn: async () => {
+      try {
+        return await userApi.getUserById(repostedPost.userId);
+      } catch {
+        return { id: repostedPost.userId, name: 'Nexora Member', email: '' };
+      }
+    },
+    staleTime: 60000,
+  });
+
+  const origName = origAuthor?.name || repostedPost.authorName || 'Nexora Member';
+  const origAvatar = origAuthor?.avatarUrl || repostedPost.authorAvatar;
+  const origHeadline = origAuthor?.headline || repostedPost.authorHeadline || 'Tech Professional';
+
+  const origMediaUrls =
+    repostedPost.mediaUrls && repostedPost.mediaUrls.length > 0
+      ? repostedPost.mediaUrls
+      : repostedPost.mediaUrl
+      ? [repostedPost.mediaUrl]
+      : [];
+
+  return (
+    <div
+      onClick={(e) => {
+        e.stopPropagation();
+        navigate(`/profile/${repostedPost.userId}`);
+      }}
+      className="mt-3 p-4 rounded-2xl bg-slate-50/90 dark:bg-dark-elevated/70 border border-light-border dark:border-dark-border hover:border-brand-500/40 dark:hover:border-brand-500/40 transition-all cursor-pointer space-y-2.5"
+    >
+      <div className="flex items-center gap-2.5">
+        <Avatar name={origName} src={origAvatar} size="sm" />
+        <div className="min-w-0 flex-1">
+          <h5 className="text-xs font-bold text-light-text dark:text-dark-text hover:text-brand-600 dark:hover:text-brand-400 transition-colors truncate">
+            {origName}
+          </h5>
+          <p className="text-[11px] text-light-muted dark:text-dark-muted truncate">
+            {origHeadline} • {formatTimeAgo(repostedPost.createdAt)}
+          </p>
+        </div>
+      </div>
+
+      <p className="text-xs text-light-text/90 dark:text-dark-text/90 leading-relaxed line-clamp-4">
+        {repostedPost.content}
+      </p>
+
+      {origMediaUrls.length > 0 && (
+        <div className="rounded-xl overflow-hidden max-h-60" onClick={(e) => e.stopPropagation()}>
+          <PostMediaCarousel mediaUrls={origMediaUrls} />
+        </div>
+      )}
+    </div>
+  );
+};
 
 export interface PostCardProps {
   post: Post;
@@ -44,8 +106,16 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [isCommentsOpen, setIsCommentsOpen] = useState<boolean>(false);
+  const [isQuoteModalOpen, setIsQuoteModalOpen] = useState<boolean>(false);
   const [editContent, setEditContent] = useState<string>(post.content);
-  const [mediaError, setMediaError] = useState<boolean>(false);
+
+  // Computed all media URLs (single or multi-photo)
+  const allMediaUrls =
+    post.mediaUrls && post.mediaUrls.length > 0
+      ? post.mediaUrls
+      : post.mediaUrl
+      ? [post.mediaUrl]
+      : [];
 
   // Poll state
   const [selectedOptionId, setSelectedOptionId] = useState<number | null>(null);
@@ -218,6 +288,25 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
     onError: (err: any) => {
       const msg = err?.response?.data?.message || 'Failed to update post.';
       showToast('error', 'Update Failed', msg);
+    },
+  });
+
+  // Instant Repost mutation
+  const instantRepostMutation = useMutation({
+    mutationFn: async () => {
+      return await postApi.createPost({
+        content: `Shared a post by ${authorName}`,
+        repostOfPostId: post.id,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['feed-posts'] });
+      queryClient.invalidateQueries({ queryKey: ['user-posts'] });
+      showToast('success', 'Post Reposted', 'The post has been shared to your feed.');
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message || 'Failed to repost.';
+      showToast('error', 'Repost Failed', msg);
     },
   });
 
@@ -500,18 +589,14 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
               </div>
             )}
 
-            {/* Attached Media / Image */}
-            {post.mediaUrl && !mediaError && (
-              <div className="rounded-2xl overflow-hidden border border-light-border/70 dark:border-dark-border/70 bg-slate-100 dark:bg-dark-elevated max-h-[500px]">
-                <img
-                  src={post.mediaUrl}
-                  alt="Post attachment"
-                  loading="lazy"
-                  onError={() => setMediaError(true)}
-                  className="w-full h-full max-h-[500px] object-cover hover:scale-[1.01] transition-transform duration-300 cursor-pointer"
-                  onClick={() => window.open(post.mediaUrl, '_blank')}
-                />
-              </div>
+            {/* Attached Media / Photos (Single or Multi-Photo Carousel) */}
+            {allMediaUrls.length > 0 && (
+              <PostMediaCarousel mediaUrls={allMediaUrls} />
+            )}
+
+            {/* Embedded Quote Repost Card */}
+            {post.repostedPost && (
+              <EmbeddedQuoteCard repostedPost={post.repostedPost} />
             )}
           </div>
         )}
@@ -564,6 +649,30 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
                 </span>
               )}
             </button>
+
+            {/* Repost / Quote Button with Dropdown */}
+            <Dropdown
+              trigger={
+                <button
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-light-muted dark:text-dark-muted hover:bg-slate-100 dark:hover:bg-dark-elevated hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+                >
+                  <Repeat className="w-4 h-4" />
+                  <span>Repost</span>
+                </button>
+              }
+              items={[
+                {
+                  label: 'Instant Repost',
+                  icon: <Repeat className="w-4 h-4 text-emerald-500" />,
+                  onClick: () => instantRepostMutation.mutate(),
+                },
+                {
+                  label: 'Repost with thoughts',
+                  icon: <Edit3 className="w-4 h-4 text-brand-500" />,
+                  onClick: () => setIsQuoteModalOpen(true),
+                },
+              ]}
+            />
           </div>
 
           <div className="flex items-center gap-1">
@@ -599,6 +708,19 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
         {/* Expandable Comment Section */}
         {isCommentsOpen && (
           <CommentSection postId={post.id} postAuthorId={post.userId} />
+        )}
+
+        {/* Quote Post Modal */}
+        {isQuoteModalOpen && (
+          <QuotePostModal
+            isOpen={isQuoteModalOpen}
+            onClose={() => setIsQuoteModalOpen(false)}
+            originalPost={post}
+            onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ['feed-posts'] });
+              queryClient.invalidateQueries({ queryKey: ['user-posts'] });
+            }}
+          />
         )}
       </div>
     </Card>

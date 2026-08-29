@@ -68,6 +68,9 @@ export interface PostDto {
   id: number;
   content: string;
   mediaUrl?: string;
+  mediaUrls?: string[];
+  repostOfPostId?: number;
+  repostedPost?: PostDto;
   userId: number;
   poll?: PollDto;
   createdAt: string;
@@ -76,6 +79,8 @@ export interface PostDto {
 export interface PostCreateInput {
   content: string;
   mediaUrl?: string;
+  mediaUrls?: string[];
+  repostOfPostId?: number;
   poll?: PollCreateInput;
 }
 
@@ -83,6 +88,9 @@ export interface Post {
   id: number;
   content: string;
   mediaUrl?: string;
+  mediaUrls?: string[];
+  repostOfPostId?: number;
+  repostedPost?: Post;
   userId: number;
   poll?: PollDto;
   createdAt: string;
