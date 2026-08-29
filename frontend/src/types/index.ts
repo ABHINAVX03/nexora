@@ -323,3 +323,54 @@ export interface AddSkillInput {
   skillName: string;
 }
 
+// --- Advanced Global Search DTOs ---
+export interface SearchUserDto {
+  id: number;
+  name: string;
+  email: string;
+  headline?: string;
+  bio?: string;
+  location?: string;
+  avatarUrl?: string;
+  bannerUrl?: string;
+  currentCompany?: string;
+  currentTitle?: string;
+  skills: string[];
+  relevanceScore: number;
+}
+
+export interface HashtagDto {
+  tag: string;
+  displayName: string;
+  postCount: number;
+}
+
+export interface SearchSuggestionsDto {
+  people: Array<{
+    id: number;
+    name: string;
+    headline?: string;
+    avatarUrl?: string;
+  }>;
+  companies: Array<{
+    id: number;
+    name: string;
+    logoUrl?: string;
+    industry?: string;
+    memberCount: number;
+  }>;
+  skills: Array<{
+    id: number;
+    name: string;
+    category?: string;
+    memberCount: number;
+  }>;
+  hashtags?: HashtagDto[];
+  posts?: Array<{
+    id: number;
+    userId: number;
+    contentSnippet: string;
+    mediaUrl?: string;
+  }>;
+}
+

@@ -19,4 +19,12 @@ public interface UserSkillRepository extends JpaRepository<UserSkill, Long> {
     boolean existsByUserIdAndSkillId(Long userId, Long skillId);
 
     boolean existsByUserIdAndSkillNameIgnoreCase(Long userId, String skillName);
+
+    List<UserSkill> findByUserIdIn(List<Long> userIds);
+
+    List<UserSkill> findBySkillNameIgnoreCase(String skillName);
+
+    long countBySkillId(Long skillId);
+
+    long countBySkillNameIgnoreCase(String skillName);
 }

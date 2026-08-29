@@ -16,6 +16,7 @@ import { ProfilePage } from '../pages/ProfilePage';
 import { PostDetailPage } from '../pages/PostDetailPage';
 import { SavedPostsPage } from '../pages/SavedPostsPage';
 import { SettingsPage } from '../pages/SettingsPage';
+import { SearchPage } from '../pages/SearchPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { useAuth } from '../context/AuthContext';
 import { AppLoadingScreen } from '../components/ui/AppLoadingScreen';
@@ -160,6 +161,10 @@ export const router = createBrowserRouter([
       {
         path: '/settings',
         element: <SettingsPage />,
+      },
+      {
+        path: '/search',
+        element: <SearchPage />,
       },
     ],
   },

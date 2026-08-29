@@ -16,6 +16,9 @@ public class PostDto {
     private PostDto repostedPost;
     private Long userId;
     private PollDto poll;
+    private Integer likesCount = 0;
+    private Integer commentsCount = 0;
+    private Boolean hasLiked = false;
     private LocalDateTime createdAt;
 }
 

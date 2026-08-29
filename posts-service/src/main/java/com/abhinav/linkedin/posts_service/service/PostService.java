@@ -12,6 +12,7 @@ import com.abhinav.linkedin.posts_service.event.PostCreatedEvent;
 import com.abhinav.linkedin.posts_service.exception.BadRequestException;
 import com.abhinav.linkedin.posts_service.exception.ForbiddenException;
 import com.abhinav.linkedin.posts_service.exception.ResourceNotFoundException;
+import com.abhinav.linkedin.posts_service.repository.CommentRepository;
 import com.abhinav.linkedin.posts_service.repository.PollRepository;
 import com.abhinav.linkedin.posts_service.repository.PollVoteRepository;
 import com.abhinav.linkedin.posts_service.repository.PostBookmarkRepository;
@@ -40,6 +41,7 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final PostLikeRepository postLikeRepository;
+    private final CommentRepository commentRepository;
     private final PostBookmarkRepository postBookmarkRepository;
     private final PollRepository pollRepository;
     private final PollVoteRepository pollVoteRepository;
@@ -414,6 +416,13 @@ public class PostService {
 
         Optional<Poll> pollOpt = pollRepository.findByPostId(post.getId());
         pollOpt.ifPresent(poll -> dto.setPoll(buildPollDto(poll, currentUserId)));
+
+        dto.setLikesCount((int) postLikeRepository.countByPostId(post.getId()));
+        if (currentUserId != null) {
+            dto.setHasLiked(postLikeRepository.existsByPostIdAndUserId(post.getId(), currentUserId));
+        }
+        dto.setCommentsCount((int) commentRepository.countByPostId(post.getId()));
+
         return dto;
     }
 
@@ -483,5 +492,112 @@ public class PostService {
         log.error("Circuit breaker fallback triggered for isFirstDegreeConnection({}, {}). Remote connection-service error: {}",
                 authorId, currentUserId, throwable.getMessage());
         return false;
+    }
+
+    public List<PostDto> searchPosts(String query, String sort, int page, int size, Long currentUserId) {
+        log.info("Searching posts with query: '{}', sort: '{}', page: {}, size: {}", query, sort, page, size);
+        String normalized = query != null ? query.trim().toLowerCase() : "";
+        List<Post> posts;
+        if (normalized.isBlank()) {
+            posts = postRepository.findAllByOrderByCreatedAtDesc();
+        } else {
+            posts = postRepository.searchPostsByContentAll(normalized);
+        }
+
+        List<PostDto> dtos = posts.stream()
+                .map(p -> mapToDtoWithPoll(p, currentUserId))
+                .collect(Collectors.toList());
+
+        if ("popular".equalsIgnoreCase(sort)) {
+            dtos.sort((a, b) -> {
+                int likesA = a.getLikesCount() != null ? a.getLikesCount() : 0;
+                int likesB = b.getLikesCount() != null ? b.getLikesCount() : 0;
+                return Integer.compare(likesB, likesA);
+            });
+        } else {
+            // Default "recent" sort
+            dtos.sort((a, b) -> {
+                if (a.getCreatedAt() == null || b.getCreatedAt() == null) return 0;
+                return b.getCreatedAt().compareTo(a.getCreatedAt());
+            });
+        }
+
+        int start = Math.min(page * size, dtos.size());
+        int end = Math.min(start + size, dtos.size());
+        return dtos.subList(start, end);
+    }
+
+    public List<HashtagDto> searchHashtags(String query) {
+        String normalized = query != null ? query.trim().toLowerCase().replace("#", "") : "";
+        List<Post> allPosts = postRepository.findAll();
+        Map<String, Long> tagCounts = new HashMap<>();
+
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("#([a-zA-Z0-9_]+)");
+        for (Post p : allPosts) {
+            if (p.getContent() != null) {
+                java.util.regex.Matcher matcher = pattern.matcher(p.getContent());
+                Set<String> postTags = new HashSet<>();
+                while (matcher.find()) {
+                    postTags.add(matcher.group(1).toLowerCase());
+                }
+                for (String t : postTags) {
+                    tagCounts.put(t, tagCounts.getOrDefault(t, 0L) + 1L);
+                }
+            }
+        }
+
+        List<HashtagDto> result = new ArrayList<>();
+        for (Map.Entry<String, Long> entry : tagCounts.entrySet()) {
+            if (normalized.isBlank() || entry.getKey().contains(normalized)) {
+                result.add(HashtagDto.builder()
+                        .tag(entry.getKey())
+                        .displayName("#" + entry.getKey())
+                        .postCount(entry.getValue())
+                        .build());
+            }
+        }
+
+        result.sort((a, b) -> {
+            int cmp = Long.compare(b.getPostCount(), a.getPostCount());
+            if (cmp != 0) return cmp;
+            return a.getTag().compareToIgnoreCase(b.getTag());
+        });
+
+        return result;
+    }
+
+    public PostSuggestionsDto getPostSuggestions(String query) {
+        String normalized = query != null ? query.trim().toLowerCase() : "";
+        if (normalized.isBlank()) {
+            return PostSuggestionsDto.builder()
+                    .hashtags(Collections.emptyList())
+                    .posts(Collections.emptyList())
+                    .build();
+        }
+
+        List<HashtagDto> hashtags = searchHashtags(normalized);
+        if (hashtags.size() > 4) {
+            hashtags = hashtags.subList(0, 4);
+        }
+
+        List<Post> posts = postRepository.searchPostsByContent(normalized, org.springframework.data.domain.PageRequest.of(0, 3));
+        List<PostSuggestionsDto.PostSnippetDto> postSnippets = posts.stream()
+                .map(p -> {
+                    String snippet = p.getContent() != null
+                            ? (p.getContent().length() > 60 ? p.getContent().substring(0, 60) + "..." : p.getContent())
+                            : "";
+                    return PostSuggestionsDto.PostSnippetDto.builder()
+                            .id(p.getId())
+                            .userId(p.getUserId())
+                            .contentSnippet(snippet)
+                            .mediaUrl(p.getMediaUrl())
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        return PostSuggestionsDto.builder()
+                .hashtags(hashtags)
+                .posts(postSnippets)
+                .build();
     }
 }

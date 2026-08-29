@@ -12,4 +12,10 @@ public interface ExperienceRepository extends JpaRepository<Experience, Long> {
     List<Experience> findByUserIdOrderByIsCurrentlyWorkingDescStartDateDesc(Long userId);
 
     List<Experience> findByUserId(Long userId);
+
+    List<Experience> findByUserIdIn(List<Long> userIds);
+
+    long countByCompanyId(Long companyId);
+
+    long countByCompanyNameIgnoreCase(String companyName);
 }

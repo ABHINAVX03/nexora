@@ -149,4 +149,36 @@ public class PostController {
         PollDto poll = postService.getPollByPostId(postId, currentUserId);
         return ResponseEntity.ok(poll);
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<PostDto>> searchPosts(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String query,
+            @RequestParam(defaultValue = "recent") String sort,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            HttpServletRequest request) {
+        Long currentUserId = extractUserId(request);
+        String searchQuery = (q != null && !q.isBlank()) ? q : query;
+        List<PostDto> results = postService.searchPosts(searchQuery, sort, page, size, currentUserId);
+        return ResponseEntity.ok(results);
+    }
+
+    @GetMapping("/hashtags/search")
+    public ResponseEntity<List<com.abhinav.linkedin.posts_service.dto.HashtagDto>> searchHashtags(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String query) {
+        String searchQuery = (q != null && !q.isBlank()) ? q : query;
+        List<com.abhinav.linkedin.posts_service.dto.HashtagDto> results = postService.searchHashtags(searchQuery);
+        return ResponseEntity.ok(results);
+    }
+
+    @GetMapping("/search/suggestions")
+    public ResponseEntity<com.abhinav.linkedin.posts_service.dto.PostSuggestionsDto> getPostSuggestions(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String query) {
+        String searchQuery = (q != null && !q.isBlank()) ? q : query;
+        com.abhinav.linkedin.posts_service.dto.PostSuggestionsDto results = postService.getPostSuggestions(searchQuery);
+        return ResponseEntity.ok(results);
+    }
 }
