@@ -146,11 +146,9 @@ export const ProfilePage: React.FC = () => {
         const postsDto = await postApi.getUserPosts(resolvedUserId);
         if (!postsDto) return [];
         return postsDto.map((p: PostDto) => ({
-          id: p.id,
-          userId: p.userId,
-          content: p.content,
-          mediaUrl: p.mediaUrl,
-          createdAt: p.createdAt,
+          ...p,
+          images: p.images || p.mediaUrls || (p.mediaUrl ? [p.mediaUrl] : []),
+          mediaUrls: p.mediaUrls || p.images || (p.mediaUrl ? [p.mediaUrl] : []),
           authorName: profile?.name,
           authorAvatar: profile?.avatarUrl,
         }));

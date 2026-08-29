@@ -24,11 +24,9 @@ export const SavedPostsPage: React.FC = () => {
       const dtoList = await postApi.getBookmarkedPosts();
       if (!dtoList) return [];
       return dtoList.map((bp: PostDto) => ({
-        id: bp.id,
-        userId: bp.userId,
-        content: bp.content,
-        mediaUrl: bp.mediaUrl,
-        createdAt: bp.createdAt,
+        ...bp,
+        images: bp.images || bp.mediaUrls || (bp.mediaUrl ? [bp.mediaUrl] : []),
+        mediaUrls: bp.mediaUrls || bp.images || (bp.mediaUrl ? [bp.mediaUrl] : []),
       }));
     },
     staleTime: 5000,

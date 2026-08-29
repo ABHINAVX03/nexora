@@ -26,11 +26,9 @@ export const PostDetailPage: React.FC = () => {
       const dto = await postApi.getPostById(postId);
       if (!dto) return null;
       return {
-        id: dto.id,
-        userId: dto.userId,
-        content: dto.content,
-        mediaUrl: dto.mediaUrl,
-        createdAt: dto.createdAt,
+        ...dto,
+        images: dto.images || dto.mediaUrls || (dto.mediaUrl ? [dto.mediaUrl] : []),
+        mediaUrls: dto.mediaUrls || dto.images || (dto.mediaUrl ? [dto.mediaUrl] : []),
       };
     },
     enabled: postId > 0,
