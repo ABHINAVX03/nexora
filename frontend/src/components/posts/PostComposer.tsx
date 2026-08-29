@@ -33,17 +33,24 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPostCreated }) => 
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
-    if (selectedFiles.length + files.length > 4) {
-      showToast('error', 'Too Many Files', 'You can upload a maximum of 4 images per post.');
+    const remainingSlots = 6 - selectedFiles.length;
+    if (remainingSlots <= 0) {
+      showToast('warning', 'Limit Reached', 'You can upload a maximum of 6 images per post.');
+      e.target.value = '';
       return;
+    }
+
+    const filesToProcess = files.slice(0, remainingSlots);
+    if (files.length > remainingSlots) {
+      showToast('info', 'Image Limit', `Only the first ${remainingSlots} images were added (max 6).`);
     }
 
     const validFiles: File[] = [];
     const validPreviews: string[] = [];
 
-    for (const file of files) {
+    for (const file of filesToProcess) {
       if (!file.type.startsWith('image/')) {
-        showToast('error', 'Invalid File', 'Please select an image file (PNG, JPG, WEBP, GIF).');
+        showToast('error', 'Invalid File', `File '${file.name}' is not an image (PNG, JPG, WEBP, GIF).`);
         continue;
       }
       if (file.size > 15 * 1024 * 1024) {
@@ -54,9 +61,14 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPostCreated }) => 
       validPreviews.push(URL.createObjectURL(file));
     }
 
-    setSelectedFiles((prev) => [...prev, ...validFiles]);
-    setPreviewUrls((prev) => [...prev, ...validPreviews]);
-    setIsExpanded(true);
+    if (validFiles.length > 0) {
+      setSelectedFiles((prev) => [...prev, ...validFiles]);
+      setPreviewUrls((prev) => [...prev, ...validPreviews]);
+      setIsExpanded(true);
+    }
+
+    // Always clear input value so subsequent selections fire onChange
+    e.target.value = '';
   };
 
   const removeSelectedFile = (index: number) => {

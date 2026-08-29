@@ -39,55 +39,49 @@ public class MediaController {
         }
     }
 
-    @PostMapping("/upload")
-    public ResponseEntity<Map<String, String>> uploadPostMedia(@RequestParam("file") MultipartFile file) {
-        if (file.isEmpty()) {
-            throw new BadRequestException("Uploaded file is empty");
+    @PostMapping(value = {"/upload", "/upload-multiple"})
+    public ResponseEntity<Map<String, Object>> uploadPostMedia(
+            @RequestParam(value = "files", required = false) List<MultipartFile> filesParam,
+            @RequestParam(value = "file", required = false) List<MultipartFile> singleFilesParam,
+            org.springframework.web.multipart.MultipartHttpServletRequest request
+    ) {
+        List<MultipartFile> allFiles = new ArrayList<>();
+
+        if (filesParam != null && !filesParam.isEmpty()) {
+            allFiles.addAll(filesParam);
+        }
+        if (singleFilesParam != null && !singleFilesParam.isEmpty()) {
+            allFiles.addAll(singleFilesParam);
         }
 
-        if (file.getSize() > 15 * 1024 * 1024) { // 15MB limit
-            throw new BadRequestException("File size exceeds maximum allowed limit (15MB)");
+        // Also check all parts from the request in case field name was files[] or images
+        if (allFiles.isEmpty() && request != null) {
+            Map<String, List<MultipartFile>> fileMap = request.getMultiFileMap();
+            for (List<MultipartFile> list : fileMap.values()) {
+                if (list != null) {
+                    for (MultipartFile f : list) {
+                        if (f != null && !f.isEmpty()) {
+                            allFiles.add(f);
+                        }
+                    }
+                }
+            }
         }
 
-        String originalFilename = file.getOriginalFilename();
-        String extension = "jpg";
-        if (originalFilename != null && originalFilename.contains(".")) {
-            extension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+        if (allFiles.isEmpty()) {
+            throw new BadRequestException("No files were provided for upload");
         }
 
-        if (!ALLOWED_EXTENSIONS.contains(extension)) {
-            throw new BadRequestException("Unsupported image format. Allowed formats: JPG, PNG, WEBP, GIF");
-        }
-
-        String safeFilename = UUID.randomUUID().toString().replace("-", "") + "." + extension;
-        String fileUrl;
-        try {
-            fileUrl = s3StorageService.uploadFile("posts", safeFilename, file);
-            log.info("Uploaded post media with URL: {}", fileUrl);
-        } catch (IOException e) {
-            log.error("Failed to store media file: {}", e.getMessage(), e);
-            throw new BadRequestException("Failed to store media file: " + e.getMessage());
-        }
-
-        return ResponseEntity.ok(Map.of("url", fileUrl));
-    }
-
-    @PostMapping("/upload-multiple")
-    public ResponseEntity<Map<String, Object>> uploadMultiplePostMedia(@RequestParam("files") List<MultipartFile> files) {
-        if (files == null || files.isEmpty()) {
-            throw new BadRequestException("No files were uploaded");
-        }
-
-        if (files.size() > 4) {
-            throw new BadRequestException("Maximum 4 images allowed per post");
+        if (allFiles.size() > 6) {
+            throw new BadRequestException("Maximum 6 images allowed per post");
         }
 
         List<String> uploadedUrls = new ArrayList<>();
 
-        for (MultipartFile file : files) {
+        for (MultipartFile file : allFiles) {
             if (file.isEmpty()) continue;
 
-            if (file.getSize() > 15 * 1024 * 1024) {
+            if (file.getSize() > 15 * 1024 * 1024) { // 15MB limit
                 throw new BadRequestException("File '" + file.getOriginalFilename() + "' exceeds 15MB size limit");
             }
 
@@ -98,7 +92,7 @@ public class MediaController {
             }
 
             if (!ALLOWED_EXTENSIONS.contains(extension)) {
-                throw new BadRequestException("Unsupported image format: " + extension + ". Allowed: JPG, PNG, WEBP, GIF");
+                throw new BadRequestException("Unsupported image format: " + extension + ". Allowed formats: JPG, PNG, WEBP, GIF");
             }
 
             String safeFilename = UUID.randomUUID().toString().replace("-", "") + "." + extension;
@@ -106,12 +100,12 @@ public class MediaController {
                 String fileUrl = s3StorageService.uploadFile("posts", safeFilename, file);
                 uploadedUrls.add(fileUrl);
             } catch (IOException e) {
-                log.error("Failed to upload image: {}", e.getMessage(), e);
-                throw new BadRequestException("Failed to upload image: " + e.getMessage());
+                log.error("Failed to upload media file: {}", e.getMessage(), e);
+                throw new BadRequestException("Failed to upload media file: " + e.getMessage());
             }
         }
 
-        log.info("Uploaded {} media files to S3 / CloudFront CDN", uploadedUrls.size());
+        log.info("Successfully uploaded {} media files to S3 / CloudFront CDN", uploadedUrls.size());
         return ResponseEntity.ok(Map.of(
                 "urls", uploadedUrls,
                 "url", uploadedUrls.isEmpty() ? "" : uploadedUrls.get(0)
