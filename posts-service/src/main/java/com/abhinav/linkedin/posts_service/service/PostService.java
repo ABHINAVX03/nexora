@@ -7,6 +7,7 @@ import com.abhinav.linkedin.posts_service.entity.PollOption;
 import com.abhinav.linkedin.posts_service.entity.PollVote;
 import com.abhinav.linkedin.posts_service.entity.Post;
 import com.abhinav.linkedin.posts_service.entity.PostBookmark;
+import com.abhinav.linkedin.posts_service.entity.PostImage;
 import com.abhinav.linkedin.posts_service.event.PostCreatedEvent;
 import com.abhinav.linkedin.posts_service.exception.BadRequestException;
 import com.abhinav.linkedin.posts_service.exception.ForbiddenException;
@@ -14,6 +15,7 @@ import com.abhinav.linkedin.posts_service.exception.ResourceNotFoundException;
 import com.abhinav.linkedin.posts_service.repository.PollRepository;
 import com.abhinav.linkedin.posts_service.repository.PollVoteRepository;
 import com.abhinav.linkedin.posts_service.repository.PostBookmarkRepository;
+import com.abhinav.linkedin.posts_service.repository.PostImageRepository;
 import com.abhinav.linkedin.posts_service.repository.PostLikeRepository;
 import com.abhinav.linkedin.posts_service.repository.PostRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -56,14 +58,38 @@ public class PostService {
         post.setContent(postDto.getContent());
         post.setUserId(userId);
 
-        // Handle multi-image carousel or single image
+        // Extract all media URLs from any provided field (images, mediaUrls, mediaUrl)
+        List<String> rawUrls = new ArrayList<>();
+        if (postDto.getImages() != null && !postDto.getImages().isEmpty()) {
+            for (String u : postDto.getImages()) {
+                if (u != null && !u.isBlank() && !rawUrls.contains(u.trim())) {
+                    rawUrls.add(u.trim());
+                }
+            }
+        }
         if (postDto.getMediaUrls() != null && !postDto.getMediaUrls().isEmpty()) {
-            post.setMediaUrls(new ArrayList<>(postDto.getMediaUrls()));
-            post.setMediaUrl(postDto.getMediaUrls().get(0));
-        } else if (postDto.getMediaUrl() != null && !postDto.getMediaUrl().isBlank()) {
-            String singleUrl = postDto.getMediaUrl().trim();
-            post.setMediaUrl(singleUrl);
-            post.setMediaUrls(new ArrayList<>(List.of(singleUrl)));
+            for (String u : postDto.getMediaUrls()) {
+                if (u != null && !u.isBlank() && !rawUrls.contains(u.trim())) {
+                    rawUrls.add(u.trim());
+                }
+            }
+        }
+        if (rawUrls.isEmpty() && postDto.getMediaUrl() != null && !postDto.getMediaUrl().isBlank()) {
+            rawUrls.add(postDto.getMediaUrl().trim());
+        }
+
+        List<PostImage> postImages = new ArrayList<>();
+        int order = 0;
+        for (String url : rawUrls) {
+            postImages.add(PostImage.builder()
+                    .post(post)
+                    .imageUrl(url)
+                    .displayOrder(order++)
+                    .build());
+        }
+        post.setImages(postImages);
+        if (!rawUrls.isEmpty()) {
+            post.setMediaUrl(rawUrls.get(0));
         }
 
         // Handle Quote Repost if provided
@@ -143,12 +169,41 @@ public class PostService {
         if (updateDto.getContent() != null) {
             post.setContent(updateDto.getContent());
         }
+        List<String> updatedRawUrls = new ArrayList<>();
+        if (updateDto.getImages() != null && !updateDto.getImages().isEmpty()) {
+            for (String u : updateDto.getImages()) {
+                if (u != null && !u.isBlank() && !updatedRawUrls.contains(u.trim())) {
+                    updatedRawUrls.add(u.trim());
+                }
+            }
+        }
         if (updateDto.getMediaUrls() != null && !updateDto.getMediaUrls().isEmpty()) {
-            post.setMediaUrls(new ArrayList<>(updateDto.getMediaUrls()));
-            post.setMediaUrl(updateDto.getMediaUrls().get(0));
-        } else if (updateDto.getMediaUrl() != null) {
-            post.setMediaUrl(updateDto.getMediaUrl().trim());
-            post.setMediaUrls(new ArrayList<>(List.of(updateDto.getMediaUrl().trim())));
+            for (String u : updateDto.getMediaUrls()) {
+                if (u != null && !u.isBlank() && !updatedRawUrls.contains(u.trim())) {
+                    updatedRawUrls.add(u.trim());
+                }
+            }
+        }
+        if (updatedRawUrls.isEmpty() && updateDto.getMediaUrl() != null && !updateDto.getMediaUrl().isBlank()) {
+            updatedRawUrls.add(updateDto.getMediaUrl().trim());
+        }
+
+        if (post.getImages() == null) {
+            post.setImages(new ArrayList<>());
+        }
+        post.getImages().clear();
+        int order = 0;
+        for (String url : updatedRawUrls) {
+            post.getImages().add(PostImage.builder()
+                    .post(post)
+                    .imageUrl(url)
+                    .displayOrder(order++)
+                    .build());
+        }
+        if (!updatedRawUrls.isEmpty()) {
+            post.setMediaUrl(updatedRawUrls.get(0));
+        } else {
+            post.setMediaUrl(null);
         }
         Post updatedPost = postRepository.save(post);
         return mapToDtoWithPoll(updatedPost, currentUserId);
@@ -317,24 +372,40 @@ public class PostService {
     private PostDto mapToDtoWithPoll(Post post, Long currentUserId) {
         PostDto dto = modelMapper.map(post, PostDto.class);
 
-        // Populate mediaUrls list
-        if (post.getMediaUrls() != null && !post.getMediaUrls().isEmpty()) {
-            dto.setMediaUrls(new ArrayList<>(post.getMediaUrls()));
+        // Collect all images from PostImage entity first, with mediaUrl as fallback
+        List<String> imageUrls = new ArrayList<>();
+        if (post.getImages() != null && !post.getImages().isEmpty()) {
+            for (PostImage img : post.getImages()) {
+                if (img != null && img.getImageUrl() != null && !img.getImageUrl().isBlank()) {
+                    imageUrls.add(img.getImageUrl().trim());
+                }
+            }
         } else if (post.getMediaUrl() != null && !post.getMediaUrl().isBlank()) {
-            dto.setMediaUrls(new ArrayList<>(List.of(post.getMediaUrl())));
-        } else {
-            dto.setMediaUrls(new ArrayList<>());
+            imageUrls.add(post.getMediaUrl().trim());
         }
+
+        dto.setImages(new ArrayList<>(imageUrls));
+        dto.setMediaUrls(new ArrayList<>(imageUrls));
+        dto.setMediaUrl(imageUrls.isEmpty() ? null : imageUrls.get(0));
 
         // Populate Reposted Post if this is a quote/repost
         if (post.getRepostOfPostId() != null) {
             postRepository.findById(post.getRepostOfPostId()).ifPresent(origPost -> {
                 PostDto origDto = modelMapper.map(origPost, PostDto.class);
-                if (origPost.getMediaUrls() != null && !origPost.getMediaUrls().isEmpty()) {
-                    origDto.setMediaUrls(new ArrayList<>(origPost.getMediaUrls()));
-                } else if (origPost.getMediaUrl() != null) {
-                    origDto.setMediaUrls(new ArrayList<>(List.of(origPost.getMediaUrl())));
+                List<String> origImages = new ArrayList<>();
+                if (origPost.getImages() != null && !origPost.getImages().isEmpty()) {
+                    for (PostImage img : origPost.getImages()) {
+                        if (img != null && img.getImageUrl() != null && !img.getImageUrl().isBlank()) {
+                            origImages.add(img.getImageUrl().trim());
+                        }
+                    }
+                } else if (origPost.getMediaUrl() != null && !origPost.getMediaUrl().isBlank()) {
+                    origImages.add(origPost.getMediaUrl().trim());
                 }
+                origDto.setImages(new ArrayList<>(origImages));
+                origDto.setMediaUrls(new ArrayList<>(origImages));
+                origDto.setMediaUrl(origImages.isEmpty() ? null : origImages.get(0));
+
                 Optional<Poll> origPollOpt = pollRepository.findByPostId(origPost.getId());
                 origPollOpt.ifPresent(p -> origDto.setPoll(buildPollDto(p, currentUserId)));
                 dto.setRepostedPost(origDto);

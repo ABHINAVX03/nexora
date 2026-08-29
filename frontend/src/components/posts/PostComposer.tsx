@@ -140,6 +140,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPostCreated }) => 
         content: text,
         mediaUrl,
         mediaUrls,
+        images: mediaUrls,
         poll: pollData ? pollData : undefined,
       });
     },

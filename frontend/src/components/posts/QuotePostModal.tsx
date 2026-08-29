@@ -101,6 +101,7 @@ export const QuotePostModal: React.FC<QuotePostModalProps> = ({
         content: commentary.trim() || 'Shared a post',
         repostOfPostId: originalPost.id,
         mediaUrls: uploadedMediaUrls.length > 0 ? uploadedMediaUrls : undefined,
+        images: uploadedMediaUrls.length > 0 ? uploadedMediaUrls : undefined,
         mediaUrl: uploadedMediaUrls.length > 0 ? uploadedMediaUrls[0] : undefined,
       };
 

@@ -12,8 +12,8 @@ public class PostCreateRequestDto {
     private String content;
 
     private String mediaUrl;
-
     private List<String> mediaUrls;
+    private List<String> images;
 
     private Long repostOfPostId;
 

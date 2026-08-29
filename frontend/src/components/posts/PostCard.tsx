@@ -50,12 +50,16 @@ const EmbeddedQuoteCard: React.FC<{ repostedPost: Post }> = ({ repostedPost }) =
   const origAvatar = origAuthor?.avatarUrl || repostedPost.authorAvatar;
   const origHeadline = origAuthor?.headline || repostedPost.authorHeadline || 'Tech Professional';
 
-  const origMediaUrls =
-    repostedPost.mediaUrls && repostedPost.mediaUrls.length > 0
-      ? repostedPost.mediaUrls
-      : repostedPost.mediaUrl
-      ? [repostedPost.mediaUrl]
-      : [];
+  const origMediaUrls = Array.from(
+    new Set(
+      [
+        ...(Array.isArray(repostedPost.images) ? repostedPost.images : []),
+        ...(Array.isArray(repostedPost.mediaUrls) ? repostedPost.mediaUrls : []),
+        ...(typeof (repostedPost as any).imageUrl === 'string' && (repostedPost as any).imageUrl.trim() ? [(repostedPost as any).imageUrl.trim()] : []),
+        ...(typeof repostedPost.mediaUrl === 'string' && repostedPost.mediaUrl.trim() ? [repostedPost.mediaUrl.trim()] : []),
+      ].filter((u): u is string => typeof u === 'string' && u.trim().length > 0)
+    )
+  );
 
   return (
     <div
@@ -110,12 +114,16 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [editContent, setEditContent] = useState<string>(post.content);
 
   // Computed all media URLs (single or multi-photo)
-  const allMediaUrls =
-    post.mediaUrls && post.mediaUrls.length > 0
-      ? post.mediaUrls
-      : post.mediaUrl
-      ? [post.mediaUrl]
-      : [];
+  const allMediaUrls = Array.from(
+    new Set(
+      [
+        ...(Array.isArray(post.images) ? post.images : []),
+        ...(Array.isArray(post.mediaUrls) ? post.mediaUrls : []),
+        ...(typeof (post as any).imageUrl === 'string' && (post as any).imageUrl.trim() ? [(post as any).imageUrl.trim()] : []),
+        ...(typeof post.mediaUrl === 'string' && post.mediaUrl.trim() ? [post.mediaUrl.trim()] : []),
+      ].filter((u): u is string => typeof u === 'string' && u.trim().length > 0)
+    )
+  );
 
   // Poll state
   const [selectedOptionId, setSelectedOptionId] = useState<number | null>(null);

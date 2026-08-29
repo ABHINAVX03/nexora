@@ -28,11 +28,9 @@ public class Post {
     @Column(nullable = true, length = 1000)
     private String mediaUrl;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "post_media_urls", joinColumns = @JoinColumn(name = "post_id"))
-    @Column(name = "media_url", length = 1000)
-    @OrderColumn(name = "display_order")
-    private java.util.List<String> mediaUrls = new java.util.ArrayList<>();
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OrderBy("displayOrder ASC")
+    private java.util.List<PostImage> images = new java.util.ArrayList<>();
 
     @Column(name = "repost_of_post_id", nullable = true)
     private Long repostOfPostId;
