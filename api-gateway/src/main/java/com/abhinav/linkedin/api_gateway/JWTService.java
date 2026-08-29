@@ -41,6 +41,14 @@ public class JWTService {
         }
     }
 
+    public String getSessionIdFromToken(String token) {
+        try {
+            return getClaims(token).get("sessionId", String.class);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private Claims getClaims(String token) {
         return Jwts.parser()
                 .verifyWith(secretKey)

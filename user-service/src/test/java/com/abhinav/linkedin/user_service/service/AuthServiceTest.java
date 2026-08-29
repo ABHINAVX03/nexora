@@ -13,14 +13,18 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.kafka.core.KafkaTemplate;
 
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -33,6 +37,24 @@ class AuthServiceTest {
 
     @Mock
     private JwtService jwtService;
+
+    @Mock
+    private OtpService otpService;
+
+    @Mock
+    private EmailService emailService;
+
+    @Mock
+    private S3StorageService s3StorageService;
+
+    @Mock
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Mock
+    private ValueOperations<String, String> valueOperations;
+
+    @Mock
+    private KafkaTemplate<Long, Object> kafkaTemplate;
 
     @InjectMocks
     private AuthService authService;
@@ -75,6 +97,7 @@ class AuthServiceTest {
 
         when(userRepository.existsByEmail("bob@example.com")).thenReturn(false);
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
+        when(otpService.generateAndStoreOtp(anyString(), anyString())).thenReturn("123456");
 
         UserDto result = authService.signup(requestDto);
 
@@ -104,16 +127,19 @@ class AuthServiceTest {
         user.setId(1L);
         user.setEmail("alice@example.com");
         user.setPassword(PasswordUtil.hashPassword("password123"));
+        user.setIsEmailVerified(true);
 
         when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
-        when(jwtService.generateAccessToken(1L)).thenReturn("mock-access-token");
-        when(jwtService.generateRefreshToken(1L)).thenReturn("mock-refresh-token");
+        when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(jwtService.generateAccessToken(eq(1L), anyString())).thenReturn("mock-access-token");
+        when(jwtService.generateRefreshToken(eq(1L), anyString())).thenReturn("mock-refresh-token");
 
         LoginResponseDto response = authService.login(loginDto);
 
         assertNotNull(response);
         assertEquals("mock-access-token", response.getAccessToken());
         assertEquals("mock-refresh-token", response.getRefreshToken());
+        verify(userRepository).save(any(User.class));
     }
 
     @Test

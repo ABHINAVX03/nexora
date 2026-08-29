@@ -90,6 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (credentials: LoginRequest) => {
     setIsLoading(true);
     try {
+      sessionStorage.removeItem('nexora_session_expired');
       const loginRes = await authApi.login(credentials);
       const jwtToken = loginRes.accessToken;
       const refreshToken = loginRes.refreshToken;

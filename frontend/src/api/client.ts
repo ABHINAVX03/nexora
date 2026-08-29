@@ -30,7 +30,7 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor: handle 401 Unauthorized token refresh & session cleanup
+// Response interceptor: handle 401 Unauthorized token refresh & single active session eviction
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (value?: unknown) => void;
@@ -53,8 +53,37 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-    // If 401 Unauthorized and not already retrying
+    // If 401 Unauthorized
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+      const errorData = error.response?.data as any;
+      const errorMsg =
+        typeof errorData === 'string'
+          ? errorData
+          : errorData?.message || errorData?.error || '';
+
+      // If error indicates single session invalidation (account logged in elsewhere)
+      if (
+        errorMsg.toLowerCase().includes('another browser or device') ||
+        errorMsg.toLowerCase().includes('session expired')
+      ) {
+        localStorage.removeItem('nexora_token');
+        localStorage.removeItem('nexora_refresh_token');
+        localStorage.removeItem('nexora_user');
+        sessionStorage.setItem(
+          'nexora_session_expired',
+          'You were signed out because your account was logged in from another browser or device.'
+        );
+        window.dispatchEvent(
+          new CustomEvent('nexora:session-expired', {
+            detail: {
+              reason: 'Your account was logged in from another browser or device.',
+            },
+          })
+        );
+        return Promise.reject(error);
+      }
+
+      // Bypass refresh loop on auth endpoints
       if (
         originalRequest.url?.includes('/auth/login') ||
         originalRequest.url?.includes('/auth/signup') ||
@@ -99,12 +128,33 @@ apiClient.interceptors.response.use(
         }
       } catch (refreshErr: any) {
         processQueue(refreshErr, null);
-        if (refreshErr?.response?.status === 401 || refreshErr?.response?.status === 403) {
-          localStorage.removeItem('nexora_token');
-          localStorage.removeItem('nexora_refresh_token');
-          localStorage.removeItem('nexora_user');
-          window.dispatchEvent(new CustomEvent('nexora:session-expired'));
+        const refreshData = refreshErr?.response?.data as any;
+        const refreshMsg =
+          typeof refreshData === 'string'
+            ? refreshData
+            : refreshData?.message || refreshData?.error || '';
+
+        localStorage.removeItem('nexora_token');
+        localStorage.removeItem('nexora_refresh_token');
+        localStorage.removeItem('nexora_user');
+
+        if (
+          refreshMsg.toLowerCase().includes('another browser or device') ||
+          refreshMsg.toLowerCase().includes('session expired')
+        ) {
+          sessionStorage.setItem(
+            'nexora_session_expired',
+            'You were signed out because your account was logged in from another browser or device.'
+          );
         }
+
+        window.dispatchEvent(
+          new CustomEvent('nexora:session-expired', {
+            detail: {
+              reason: refreshMsg || 'Your account was logged in from another browser or device.',
+            },
+          })
+        );
         return Promise.reject(refreshErr);
       } finally {
         isRefreshing = false;

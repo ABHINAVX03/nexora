@@ -8,6 +8,7 @@ import io.jsonwebtoken.security.SignatureException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
@@ -21,22 +22,32 @@ import java.util.List;
 public class AuthFilter extends AbstractGatewayFilterFactory<AuthFilter.Config> {
 
     private final JWTService jwtService;
+    private final ReactiveStringRedisTemplate reactiveRedisTemplate;
 
     // Public endpoints that bypass authentication
     private static final List<String> OPEN_ENDPOINTS = List.of(
             "/api/v1/auth/signup",
             "/api/v1/auth/login",
             "/api/v1/auth/refresh",
+            "/api/v1/auth/verify-email-otp",
+            "/api/v1/auth/resend-verification-otp",
+            "/api/v1/auth/forgot-password",
+            "/api/v1/auth/reset-password",
             "/auth/signup",
             "/auth/login",
             "/auth/refresh",
+            "/auth/verify-email-otp",
+            "/auth/resend-verification-otp",
+            "/auth/forgot-password",
+            "/auth/reset-password",
             "/actuator/health",
             "/actuator/info"
     );
 
-    public AuthFilter(JWTService jwtService) {
+    public AuthFilter(JWTService jwtService, ReactiveStringRedisTemplate reactiveRedisTemplate) {
         super(Config.class);
         this.jwtService = jwtService;
+        this.reactiveRedisTemplate = reactiveRedisTemplate;
     }
 
     @Override
@@ -92,23 +103,44 @@ public class AuthFilter extends AbstractGatewayFilterFactory<AuthFilter.Config> 
                 }
 
                 Long userId = jwtService.getUserIdFromToken(token);
+                String tokenSessionId = jwtService.getSessionIdFromToken(token);
 
-                // Sanitize any existing caller headers and inject verified user identity
-                ServerHttpRequest mutatedRequest = request.mutate()
-                        .headers(httpHeaders -> {
-                            httpHeaders.remove("X-User-Id");
-                            httpHeaders.remove("X-UserId");
-                            httpHeaders.set("X-User-Id", String.valueOf(userId));
-                            httpHeaders.set("X-UserId", String.valueOf(userId));
+                // 3. Single Active Session Enforcement: Compare tokenSessionId against Redis active_session:{userId}
+                return reactiveRedisTemplate.opsForValue().get("active_session:" + userId)
+                        .defaultIfEmpty("")
+                        .flatMap(activeSessionId -> {
+                            if (!activeSessionId.isEmpty() && tokenSessionId != null && !tokenSessionId.equals(activeSessionId)) {
+                                log.warn("Single active session violation: userId {} tokenSession [{}] superseded by activeSession [{}]",
+                                        userId, tokenSessionId, activeSessionId);
+                                return Mono.error(new JwtAuthenticationException(
+                                        "Session expired. Your account has been logged in from another browser or device."
+                                ));
+                            }
+
+                            // Sanitize any existing caller headers and inject verified user identity
+                            ServerHttpRequest mutatedRequest = request.mutate()
+                                    .headers(httpHeaders -> {
+                                        httpHeaders.remove("X-User-Id");
+                                        httpHeaders.remove("X-UserId");
+                                        httpHeaders.set("X-User-Id", String.valueOf(userId));
+                                        httpHeaders.set("X-UserId", String.valueOf(userId));
+                                    })
+                                    .build();
+
+                            ServerWebExchange mutatedExchange = exchange.mutate()
+                                    .request(mutatedRequest)
+                                    .build();
+
+                            log.debug("Successfully authenticated request for userId: {} on path: {}", userId, path);
+                            return chain.filter(mutatedExchange);
                         })
-                        .build();
-
-                ServerWebExchange mutatedExchange = exchange.mutate()
-                        .request(mutatedRequest)
-                        .build();
-
-                log.debug("Successfully authenticated request for userId: {} on path: {}", userId, path);
-                return chain.filter(mutatedExchange);
+                        .onErrorResume(e -> {
+                            if (e instanceof JwtAuthenticationException) {
+                                return Mono.error(e);
+                            }
+                            log.error("Authentication or session validation error on path {}: {}", path, e.getMessage());
+                            return Mono.error(new JwtAuthenticationException("Authentication failed: " + e.getMessage(), e));
+                        });
 
             } catch (ExpiredJwtException e) {
                 log.warn("JWT token expired for path {}: {}", path, e.getMessage());

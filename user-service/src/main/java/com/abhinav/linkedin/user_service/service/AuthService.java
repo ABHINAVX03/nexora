@@ -13,6 +13,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,6 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -41,6 +43,7 @@ public class AuthService {
     private final OtpService otpService;
     private final EmailService emailService;
     private final S3StorageService s3StorageService;
+    private final StringRedisTemplate stringRedisTemplate;
 
     private static final String AVATAR_UPLOAD_DIR = "uploads/avatars";
     private static final String BANNER_UPLOAD_DIR = "uploads/banners";
@@ -134,10 +137,7 @@ public class AuthService {
             throw new BadRequestException("EMAIL_NOT_VERIFIED: Please verify your email with the verification code sent to your inbox.");
         }
 
-        String accessToken = jwtService.generateAccessToken(user.getId());
-        String refreshToken = jwtService.generateRefreshToken(user.getId());
-
-        return new LoginResponseDto(accessToken, refreshToken);
+        return createSessionAndGenerateTokens(user);
     }
 
     public LoginResponseDto verifyEmailOtp(VerifyOtpRequestDto request) {
@@ -152,11 +152,8 @@ public class AuthService {
         user.setIsEmailVerified(true);
         userRepository.save(user);
 
-        // Auto-login upon verification
-        String accessToken = jwtService.generateAccessToken(user.getId());
-        String refreshToken = jwtService.generateRefreshToken(user.getId());
-
-        return new LoginResponseDto(accessToken, refreshToken);
+        // Auto-login upon verification with fresh single active session
+        return createSessionAndGenerateTokens(user);
     }
 
     public void resendVerificationOtp(ResendOtpRequestDto request) {
@@ -194,12 +191,20 @@ public class AuthService {
         // Verify OTP against Redis
         otpService.verifyOtp("reset", normalizedEmail, request.getOtp());
 
-        // Update password and ensure account is active
+        // Invalidate all previous sessions upon password reset
+        String newSessionId = UUID.randomUUID().toString();
         user.setPassword(PasswordUtil.hashPassword(request.getNewPassword()));
         user.setIsEmailVerified(true);
+        user.setCurrentSessionId(newSessionId);
         userRepository.save(user);
 
-        log.info("Password successfully reset for user: {}", normalizedEmail);
+        try {
+            stringRedisTemplate.opsForValue().set("active_session:" + user.getId(), newSessionId, Duration.ofDays(30));
+        } catch (Exception e) {
+            log.warn("Failed to update active_session in Redis during password reset for user {}: {}", user.getId(), e.getMessage());
+        }
+
+        log.info("Password successfully reset and sessions rotated for user: {}", normalizedEmail);
     }
 
     public String refreshToken(String refreshToken) {
@@ -212,7 +217,49 @@ public class AuthService {
         }
 
         Long userId = jwtService.getUserIdFromToken(refreshToken);
-        return jwtService.generateAccessToken(userId);
+        String tokenSessionId = jwtService.getSessionIdFromToken(refreshToken);
+
+        // Validate active session against Redis or DB
+        String activeSessionId = null;
+        try {
+            activeSessionId = stringRedisTemplate.opsForValue().get("active_session:" + userId);
+        } catch (Exception e) {
+            log.warn("Failed to check active_session from Redis for userId {}: {}", userId, e.getMessage());
+        }
+
+        if (activeSessionId == null) {
+            User user = userRepository.findById(userId).orElse(null);
+            if (user != null) {
+                activeSessionId = user.getCurrentSessionId();
+            }
+        }
+
+        // If this token belongs to an old/superseded session, reject refresh!
+        if (tokenSessionId != null && activeSessionId != null && !tokenSessionId.equals(activeSessionId)) {
+            log.warn("Refresh token rejected for userId {} because session {} is superseded by {}", userId, tokenSessionId, activeSessionId);
+            throw new BadRequestException("Session expired. This account has been logged in from another browser or device.");
+        }
+
+        String sessionToUse = tokenSessionId != null ? tokenSessionId : activeSessionId;
+        return jwtService.generateAccessToken(userId, sessionToUse);
+    }
+
+    private LoginResponseDto createSessionAndGenerateTokens(User user) {
+        String sessionId = UUID.randomUUID().toString();
+        user.setCurrentSessionId(sessionId);
+        userRepository.save(user);
+
+        try {
+            stringRedisTemplate.opsForValue().set("active_session:" + user.getId(), sessionId, Duration.ofDays(30));
+            log.info("Registered active single session for userId: {} (sessionId: {})", user.getId(), sessionId);
+        } catch (Exception e) {
+            log.warn("Failed to set active_session in Redis for userId {}: {}", user.getId(), e.getMessage());
+        }
+
+        String accessToken = jwtService.generateAccessToken(user.getId(), sessionId);
+        String refreshToken = jwtService.generateRefreshToken(user.getId(), sessionId);
+
+        return new LoginResponseDto(accessToken, refreshToken);
     }
 
     @CacheEvict(value = "userProfiles", key = "#userId")

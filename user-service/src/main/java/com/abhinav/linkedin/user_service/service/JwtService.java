@@ -30,33 +30,56 @@ public class JwtService {
         this.refreshTokenExpiration = refreshTokenExpiration;
     }
 
+    public String generateAccessToken(Long userId, String sessionId) {
+        return generateToken(userId, sessionId, accessTokenExpiration, "ACCESS");
+    }
+
+    public String generateRefreshToken(Long userId, String sessionId) {
+        return generateToken(userId, sessionId, refreshTokenExpiration, "REFRESH");
+    }
+
     public String generateAccessToken(Long userId) {
-        return generateToken(userId, accessTokenExpiration, "ACCESS");
+        return generateToken(userId, null, accessTokenExpiration, "ACCESS");
     }
 
     public String generateRefreshToken(Long userId) {
-        return generateToken(userId, refreshTokenExpiration, "REFRESH");
+        return generateToken(userId, null, refreshTokenExpiration, "REFRESH");
     }
 
     private String generateToken(
             Long userId,
+            String sessionId,
             long expirationTime,
             String tokenType
     ) {
         Date now = new Date();
 
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(String.valueOf(userId))
                 .claim("type", tokenType)
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + expirationTime))
-                .signWith(secretKey)
-                .compact();
+                .signWith(secretKey);
+
+        if (sessionId != null && !sessionId.isBlank()) {
+            builder.claim("sessionId", sessionId);
+        }
+
+        return builder.compact();
     }
 
     public Long getUserIdFromToken(String token) {
         Claims claims = getClaims(token);
         return Long.valueOf(claims.getSubject());
+    }
+
+    public String getSessionIdFromToken(String token) {
+        try {
+            Claims claims = getClaims(token);
+            return claims.get("sessionId", String.class);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public boolean isTokenValid(String token) {

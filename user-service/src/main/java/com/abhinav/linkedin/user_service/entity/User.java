@@ -45,4 +45,7 @@ public class User {
 
     @Column(name = "is_email_verified", nullable = false, columnDefinition = "boolean default true")
     private Boolean isEmailVerified = true;
+
+    @Column(name = "current_session_id", nullable = true)
+    private String currentSessionId;
 }

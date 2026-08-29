@@ -6,6 +6,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
+import org.springframework.data.redis.core.ReactiveValueOperations;
 import org.springframework.http.HttpHeaders;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
@@ -13,18 +15,27 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 class AuthFilterTest {
 
     private JWTService jwtService;
+    private ReactiveStringRedisTemplate reactiveRedisTemplate;
+    private ReactiveValueOperations<String, String> valueOperations;
     private AuthFilter authFilter;
     private GatewayFilterChain filterChain;
 
     @BeforeEach
+    @SuppressWarnings("unchecked")
     void setUp() {
         jwtService = Mockito.mock(JWTService.class);
-        authFilter = new AuthFilter(jwtService);
+        reactiveRedisTemplate = Mockito.mock(ReactiveStringRedisTemplate.class);
+        valueOperations = Mockito.mock(ReactiveValueOperations.class);
+        when(reactiveRedisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get(anyString())).thenReturn(Mono.empty());
+
+        authFilter = new AuthFilter(jwtService, reactiveRedisTemplate);
         filterChain = Mockito.mock(GatewayFilterChain.class);
         when(filterChain.filter(any())).thenReturn(Mono.empty());
     }
@@ -96,6 +107,8 @@ class AuthFilterTest {
         when(jwtService.isTokenValid(token)).thenReturn(true);
         when(jwtService.isAccessToken(token)).thenReturn(true);
         when(jwtService.getUserIdFromToken(token)).thenReturn(42L);
+        when(jwtService.getSessionIdFromToken(token)).thenReturn("session-123");
+        when(valueOperations.get("active_session:42")).thenReturn(Mono.just("session-123"));
 
         Mono<Void> result = authFilter.apply(new AuthFilter.Config()).filter(exchange, filterChain);
 
@@ -105,6 +118,30 @@ class AuthFilterTest {
         verify(filterChain, times(1)).filter(argThat(ex ->
                 "42".equals(ex.getRequest().getHeaders().getFirst("X-User-Id"))
         ));
+    }
+
+    @Test
+    void testFilter_supersededSession_throwsJwtAuthenticationException() {
+        String token = "supersededToken";
+        MockServerHttpRequest request = MockServerHttpRequest.get("/api/v1/posts")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .build();
+        MockServerWebExchange exchange = MockServerWebExchange.from(request);
+
+        when(jwtService.isTokenValid(token)).thenReturn(true);
+        when(jwtService.isAccessToken(token)).thenReturn(true);
+        when(jwtService.getUserIdFromToken(token)).thenReturn(42L);
+        when(jwtService.getSessionIdFromToken(token)).thenReturn("old-session-1");
+        when(valueOperations.get("active_session:42")).thenReturn(Mono.just("new-session-2"));
+
+        Mono<Void> result = authFilter.apply(new AuthFilter.Config()).filter(exchange, filterChain);
+
+        StepVerifier.create(result)
+                .expectErrorMatches(throwable -> throwable instanceof JwtAuthenticationException &&
+                        throwable.getMessage().contains("Session expired"))
+                .verify();
+
+        verify(filterChain, never()).filter(any());
     }
 
     @Test

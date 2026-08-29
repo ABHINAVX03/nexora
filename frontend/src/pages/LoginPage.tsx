@@ -25,6 +25,14 @@ export const LoginPage: React.FC = () => {
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [sessionExpiredMsg, setSessionExpiredMsg] = useState<string | null>(() => {
+    const msg = sessionStorage.getItem('nexora_session_expired');
+    if (msg) {
+      sessionStorage.removeItem('nexora_session_expired');
+      return msg;
+    }
+    return null;
+  });
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
 
   const {
@@ -32,17 +40,18 @@ export const LoginPage: React.FC = () => {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
       password: '',
       rememberMe: true,
     },
+    resolver: zodResolver(loginSchema),
   });
 
   const onSubmit = async (data: LoginFormValues) => {
     setErrorMsg(null);
     setUnverifiedEmail(null);
+    setSessionExpiredMsg(null);
     try {
       await login({ email: data.email, password: data.password });
       showToast('success', 'Welcome Back', 'Successfully signed into Nexora');
@@ -98,6 +107,16 @@ export const LoginPage: React.FC = () => {
         {/* Login Form Card */}
         <Card className="p-6 sm:p-8 border-light-border dark:border-dark-border shadow-card dark:shadow-card-dark">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {sessionExpiredMsg && (
+              <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
+                <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-semibold">Single Active Session</p>
+                  <p className="text-[11px] mt-0.5">{sessionExpiredMsg}</p>
+                </div>
+              </div>
+            )}
+
             {errorMsg && (
               <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 text-xs text-rose-600 dark:text-rose-400">
                 <p>{errorMsg}</p>
