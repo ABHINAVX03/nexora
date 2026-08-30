@@ -39,7 +39,9 @@ uploads/avatars/*
 *.pem
 *.key
 
-# Logs & Test Reports
+# Logs, Backups & Test Reports
 **/logs/
 *.log
+backups/
 e2e_report.html
+benchmark_results.json
