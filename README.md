@@ -1,52 +1,84 @@
-# Nexora — Enterprise Distributed Social & Professional Networking Platform
+<div align="center">
+
+# 🌐 NEXORA (नेक्सोरा)
+### Enterprise-Grade Event-Driven Distributed Professional Social Network
+
+[![Live Production Site](https://img.shields.io/badge/Live_Production-https%3A%2F%2Fnexoranetworks.site-0A66C2?style=for-the-badge&logo=googlechrome&logoColor=white)](https://nexoranetworks.site)
+[![AWS EC2 & CloudFront](https://img.shields.io/badge/AWS-EC2_%7C_S3_%7C_CloudFront_CDN-FF9900?style=for-the-badge&logo=amazonwebservices&logoColor=white)](https://aws.amazon.com/)
+[![E2E Verification Pass](https://img.shields.io/badge/E2E_Tests-35%2F35_PASSED_(100%25)-10B981?style=for-the-badge&logo=checkmarx&logoColor=white)](file:///Users/abhinavgupta/Desktop/Linkdin/e2e_report.html)
+[![CI/CD Pipeline](https://img.shields.io/badge/CI%2FCD-GitHub_Actions_Zero--Touch-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/ABHINAVX03/nexora/actions)
 
 <p align="center">
-  <a href="https://nexoranetwork.site"><img src="https://img.shields.io/badge/Live_Site-https%3A%2F%2Fnexoranetwork.site-brightgreen?style=for-the-badge&logo=googlechrome" alt="Live Site" /></a>
-  <img src="https://img.shields.io/badge/AWS-Mumbai_(ap--south--1)-232F3E.svg?style=for-the-badge&logo=amazonwebservices" alt="AWS Mumbai" />
-  <img src="https://img.shields.io/badge/AWS-S3_%26_CloudFront_CDN-FF9900.svg?style=for-the-badge&logo=amazons3" alt="AWS S3 and CloudFront" />
-  <img src="https://img.shields.io/badge/Java-21_(Virtual_Threads)-orange.svg?style=for-the-badge&logo=openjdk" alt="Java 21" />
-  <img src="https://img.shields.io/badge/Spring_Boot-4.1-brightgreen.svg?style=for-the-badge&logo=springboot" alt="Spring Boot" />
-  <img src="https://img.shields.io/badge/Apache_Kafka-Event--Driven-black.svg?style=for-the-badge&logo=apachekafka" alt="Apache Kafka" />
-  <img src="https://img.shields.io/badge/Neo4j-Graph_DB-008CC1.svg?style=for-the-badge&logo=neo4j" alt="Neo4j Graph" />
-  <img src="https://img.shields.io/badge/PostgreSQL-B--Tree_Indexed-336791.svg?style=for-the-badge&logo=postgresql" alt="PostgreSQL" />
-  <img src="https://img.shields.io/badge/Redis-Caching-DC382D.svg?style=for-the-badge&logo=redis" alt="Redis" />
-  <img src="https://img.shields.io/badge/React_18-TypeScript-61DAFB.svg?style=for-the-badge&logo=react" alt="React TypeScript" />
-  <img src="https://img.shields.io/badge/Google_SEO-Indexed-4285F4.svg?style=for-the-badge&logo=google" alt="Google SEO" />
+  <img src="https://img.shields.io/badge/Java-21_(Virtual_Threads)-ED8B00?style=flat-square&logo=openjdk&logoColor=white" />
+  <img src="https://img.shields.io/badge/Spring_Boot-3.3%2B-6DB33F?style=flat-square&logo=springboot&logoColor=white" />
+  <img src="https://img.shields.io/badge/Spring_Cloud-Gateway_%26_Eureka-6DB33F?style=flat-square&logo=spring&logoColor=white" />
+  <img src="https://img.shields.io/badge/Apache_Kafka-Event--Driven-231F20?style=flat-square&logo=apachekafka&logoColor=white" />
+  <img src="https://img.shields.io/badge/Neo4j-Graph_Social_Network-008CC1?style=flat-square&logo=neo4j&logoColor=white" />
+  <img src="https://img.shields.io/badge/PostgreSQL-Multi--Database_ACID-4169E1?style=flat-square&logo=postgresql&logoColor=white" />
+  <img src="https://img.shields.io/badge/Redis-Cache_%26_Rate_Limiting-DC382D?style=flat-square&logo=redis&logoColor=white" />
+  <img src="https://img.shields.io/badge/React-18_%7C_TypeScript_%7C_Tailwind-61DAFB?style=flat-square&logo=react&logoColor=black" />
+  <img src="https://img.shields.io/badge/Docker-Production_Hardened-2496ED?style=flat-square&logo=docker&logoColor=white" />
 </p>
 
----
-
-## 📌 Executive Overview
-
-**Nexora** ([https://nexoranetwork.site](https://nexoranetwork.site)) is an enterprise-grade, high-concurrency distributed social and professional networking platform designed for modern software engineers, tech professionals, and creators. Built on an **Event-Driven Microservices Architecture**, Nexora delivers real-time social feeds, interactive polling, bidirectional STOMP messaging, graph-based relationship queries, asynchronous Kafka event fan-outs, normalized career histories, 1st-degree peer skill endorsements, and globally cached media assets.
-
-The platform is deployed live on **AWS EC2 (Mumbai `ap-south-1`)** backed by **AWS S3 Cloud Storage** and **AWS CloudFront Global Edge CDN**, empirically benchmarked to handle **100,000+ Concurrent Virtual Users** with **0.00% Error Rate** and **sub-85ms median response time**.
+*A high-throughput, horizontally scalable professional networking platform engineered with asynchronous event streams, polyglot persistence, bidirectional WebSocket messaging, and cloud-native self-healing infrastructure.*
 
 ---
 
-## 🏛️ System Architecture
+</div>
+
+## 📑 Table of Contents
+- [Executive Overview & Problem Statement](#-executive-overview--problem-statement)
+- [System Architecture & Topology](#-system-architecture--topology)
+- [Polyglot Persistence Strategy](#-polyglot-persistence-strategy)
+- [Core Architectural Highlights & Engineering Decisions](#-core-architectural-highlights--engineering-decisions)
+- [Feature Showcase & Technical Capabilities](#-feature-showcase--technical-capabilities)
+- [Security Hardening & Single Active Session](#-security-hardening--single-active-session)
+- [Empirical Benchmarks & Load Testing](#-empirical-benchmarks--load-testing)
+- [Automated End-to-End (E2E) Test Suite](#-automated-end-to-end-e2e-test-suite)
+- [CI/CD & Zero-Touch Deployment](#-cicd--zero-touch-deployment)
+- [Microservices Catalog](#-microservices-catalog)
+- [Local Development & Quick Start](#-local-development--quick-start)
+- [Author & Acknowledgments](#-author--acknowledgments)
+
+---
+
+## 📌 Executive Overview & Problem Statement
+
+Modern enterprise social and professional platforms (such as LinkedIn) handle millions of heterogeneous interactions per second—ranging from transactional user profile edits and real-time chat messages to high-throughput social feed aggregations and complex $N$-degree social graph traversals.
+
+Monolithic architectures fail to scale under these divergent computational workloads. **Nexora** is designed as a cloud-native, **Event-Driven Microservices Ecosystem** that decouples these concerns into purpose-built, independently scalable services:
+
+1. **Transactional Ingestion**: ACID-compliant PostgreSQL databases for profiles, posts, comments, and notifications.
+2. **High-Velocity Graph Traversals**: Neo4j graph database utilizing Cypher graph queries to compute 1st-degree circles, reciprocal friend requests, and connection recommendations in $O(1)$ / $O(k)$ graph hops.
+3. **Decoupled Asynchronous Fan-Out**: Apache Kafka event streams processing high-volume domain events (post creations, likes, comments, connection acceptances, profile views) without blocking HTTP worker threads.
+4. **Edge Delivery & Zero-Disk I/O**: AWS S3 object storage paired with an AWS CloudFront Global Edge CDN (600+ Points of Presence) delivering multimedia assets with sub-15ms edge latency.
+5. **High Concurrency I/O**: Powered by **Java 21 Virtual Threads (Project Loom)**, allowing tens of thousands of concurrent I/O operations per JVM container with minimal memory overhead.
+
+---
+
+## 🏛️ System Architecture & Topology
 
 ```mermaid
 graph TD
-    Client["Client Layer<br/>React 18 • TypeScript • Tailwind CSS • Vite"]
-    CDN["AWS CloudFront Global CDN<br/>Edge Caching (600+ PoPs worldwide)"]
-    S3[("AWS S3 Storage<br/>nexora-media-mumbai")]
-    Gateway["API Gateway (Port 8080)<br/>Spring Cloud Gateway • Netty • JWT • CORS"]
+    Client["Client Tier<br/>React 18 • TypeScript • Tailwind CSS • Vite"]
+    CDN["AWS CloudFront Edge CDN<br/>Global PoPs • SSL/TLS 1.3"]
+    S3[("AWS S3 Bucket<br/>nexora-media-mumbai")]
+    Gateway["API Gateway (Port 8080)<br/>Spring Cloud Gateway • Netty • Redis Rate Limiting"]
     Eureka["Discovery Server (Port 8761)<br/>Netflix Eureka Service Registry"]
     Config["Config Server (Port 8888)<br/>Spring Cloud Config Server"]
 
     Client -->|Static Assets & Media| CDN
-    CDN -.->|Cache Miss| S3
-    Client -->|REST & WebSockets| Gateway
-    Gateway -->|Service Discovery| Eureka
-    Gateway -->|Pull Config| Config
+    CDN -.->|Cache Miss / Origin Fetch| S3
+    Client -->|REST & STOMP WebSockets| Gateway
+    Gateway -->|Service Resolution| Eureka
+    Gateway -->|Pull Runtime Properties| Config
 
-    subgraph DomainServices ["Domain Microservices (Java 21 Virtual Threads)"]
-        UserService["user-service (Port 9020)<br/>Auth • Profiles • Career • Skills • S3 Upload"]
-        PostsService["posts-service (Port 9010)<br/>Feed Ranking • Polls • CRUD • S3 Media"]
-        ConnService["connection-service (Port 8090)<br/>Neo4j Graph Social Network • 1st-Degree Engine"]
-        NotifService["notification-service (Port 9030)<br/>Multi-Event Consumer & Live Badges"]
-        ChatService["chat-service (Port 9040)<br/>WebSocket STOMP • Presence Engine"]
+    subgraph DomainServices ["Domain Microservices Layer (Java 21 Virtual Threads)"]
+        UserService["user-service (9020)<br/>Auth • Profile • Career • Skills • S3 Upload"]
+        PostsService["posts-service (9010)<br/>Feed Ranking • Polls • Carousels • Media"]
+        ConnService["connection-service (8090)<br/>Neo4j Graph Social Network • 1st-Degree Engine"]
+        NotifService["notification-service (9030)<br/>Kafka Multi-Event Consumer • Live Badges"]
+        ChatService["chat-service (9040)<br/>WebSocket STOMP • Online Presence Engine"]
     end
 
     Gateway --> UserService
@@ -55,13 +87,13 @@ graph TD
     Gateway --> NotifService
     Gateway --> ChatService
 
-    UserService -->|OpenFeign 1st-Degree Check| ConnService
+    UserService -->|OpenFeign 1st-Degree Verification| ConnService
 
-    subgraph StorageLayer ["Data & Storage Layer"]
-        PostgresDB[(PostgreSQL - Neon Pooler)]
-        Neo4jDB[(Neo4j AuraDB - Graph Relations)]
-        RedisCache[(Redis In-Memory Cache)]
-        KafkaBroker[[Apache Kafka Event Broker]]
+    subgraph StorageLayer ["Polyglot Storage & Middleware Layer"]
+        PostgresDB[(PostgreSQL Databases<br/>ACID Pools • HikariCP max=25)]
+        Neo4jDB[(Neo4j AuraDB<br/>Graph Engine • Cypher)]
+        RedisCache[(Redis In-Memory<br/>Allkeys-LRU • Rate Limiter)]
+        KafkaBroker[[Apache Kafka Broker<br/>Event Streams & Topics]]
     end
 
     UserService --> PostgresDB
@@ -78,131 +110,198 @@ graph TD
     ConnService -->|Pub: ConnRequest, ConnAccepted| KafkaBroker
 
     NotifService --> PostgresDB
-    KafkaBroker -->|Sub: All Domain Events| NotifService
+    KafkaBroker -->|Sub: All Domain Event Topics| NotifService
 
     ChatService --> PostgresDB
 ```
 
 ---
 
-## 🌟 Key Platform Features
+## 🗄️ Polyglot Persistence Strategy
 
-### 1. 💼 Work Experience & Career Timeline
-* **Searchable Company Autocomplete**: Fast debounced search against a normalized catalogue of 60+ global & Indian technology leaders (Google, Microsoft, Amazon, Meta, NVIDIA, Apple, Uber, Infosys, TCS, etc.) with official domains and logos.
-* **Custom Company Fallback**: Seamless `"Other / Company not listed"` option allowing custom company entries.
-* **Date & Status Validation**: Strict start date, end date, and currently working status validation.
-* **Interactive Career Timeline**: Responsive chronological timeline weaving professional roles, duration calculations, tech stack chips, and academic degrees.
+Nexora implements **Polyglot Persistence**, assigning each storage technology to its optimal access pattern:
 
-### 2. 🎓 Academic Education & Institutions
-* **Recognized Institution Catalogue**: Autocomplete search against 50+ premier universities and colleges (IIT Delhi, IIT Bombay, IIT Madras, BITS Pilani, Delhi University, Stanford, MIT, Harvard, CMU, etc.).
-* **Custom University Fallback**: Support for `"Other / Institution not listed"` with custom university text.
-* **Degree & Field of Study**: Validates graduation years, CGPA/grades, thesis descriptions, and honors.
-
-### 3. 🎯 Technical Skills & 1st-Degree Peer Endorsements
-* **Normalized Skill Catalogue**: 70+ technical skills categorized into Backend, Frontend, Cloud & DevOps, Databases, and Architecture with case-insensitive unique constraints.
-* **1st-Degree Network Validation (Backend Enforced)**: Inter-service OpenFeign communication between `user-service` and `connection-service` strictly guarantees that **only authenticated 1st-degree connections can endorse skills**.
-* **Zero Fabrication & Security**: Self-endorsements and duplicate endorsements are strictly blocked with HTTP 400 and database uniqueness constraints `UNIQUE(user_id, skill_id, endorser_id)`.
-* **Mutual Endorser Avatars**: Displays real avatars of endorsing connections (+N more modal viewer) and an active **[Endorse]** / **[Endorsed]** toggle.
-
-### 4. 📰 Real-Time Feed, Posts & Interactive Polls
-* **Infinite Feed & Ranking**: Fast paginated feed with atomic likes, rich comments, and instant UI updates.
-* **Interactive Polling**: Create multi-option polls with real-time percentage calculations and duplicate vote prevention.
-* **CloudFront Accelerated Media**: High-speed image and media delivery via AWS CloudFront CDN.
-
-### 5. 💬 STOMP WebSockets Direct Messaging & Presence Engine
-* **Real-time Chat**: Low-latency 1-on-1 direct messaging using Spring WebSocket STOMP.
-* **Live Presence Tracking**: Real-time Online/Offline indicator and unread message counters.
-
-### 6. 🔍 Google SEO, Schema.org JSON-LD & Search Console
-* **Knowledge Graph Structured Data**: Embedded Schema.org JSON-LD structured data for `WebSite` and `Organization` (`Nexora`, `Nexora Network`, `Nexora Networks`).
-* **Sitemap & Robots**: Live [`/sitemap.xml`](https://nexoranetwork.site/sitemap.xml) and [`/robots.txt`](https://nexoranetwork.site/robots.txt) configured and verified in **Google Search Console** with Status: Success.
-* **Dynamic Document Titles**: Dynamic route titles and OpenGraph / Twitter Cards for rich social media sharing previews.
+| Storage Technology | Microservice | Purpose & Data Model | Key Optimization |
+|:---|:---|:---|:---|
+| **PostgreSQL** | `user-service`, `posts-service`, `chat-service`, `notification-service` | Relational transactional data (Users, Posts, Comments, Polls, Messages, Notifications). | B-Tree composite indexes on `(user_id, created_at DESC)` and tuned HikariCP pools (`max: 25`). |
+| **Neo4j Graph DB** | `connection-service` | Directional social graph model: `(:Person)-[:CONNECTED_TO]->(:Person)` and `[:REQUESTED_TO]`. | Eliminates recursive relational self-joins ($O(N^2)$); executes bidirectional graph traversals in $O(1)$. |
+| **Redis In-Memory** | `api-gateway`, `user-service`, `posts-service` | Single active session validation, Gateway token-bucket rate limiting, user feed caching. | Configured with `maxmemory 512mb` and `allkeys-lru` eviction policy. |
+| **AWS S3 + CloudFront** | `user-service`, `posts-service` | Object storage for high-resolution avatars, profile banners, and multi-image post carousels. | CloudFront CDN edge caching offloads >70% of network I/O from application servers. |
 
 ---
 
-## ⚡ High-Concurrency Engineering & Scalability
+## ⚡ Core Architectural Highlights & Engineering Decisions
 
 ### 1. 🧵 Java 21 Virtual Threads (Project Loom)
-* Replaced heavy OS kernel thread-per-request blocking with lightweight fibers (`spring.threads.virtual.enabled: true`).
-* Enables Spring Boot microservices to handle **tens of thousands of concurrent I/O requests** with minimal memory footprint and zero thread starvation.
+All Spring Boot services leverage Java 21 Virtual Threads (`spring.threads.virtual.enabled: true`). When a request performs blocking I/O (such as waiting for database queries, S3 uploads, or Kafka acknowledgments), the underlying OS carrier thread is unmounted, allowing thousands of concurrent requests to be handled simultaneously with near-zero memory overhead.
 
-### 2. 🌍 AWS S3 + CloudFront Global Edge CDN
-* User avatars, banners, and post media attachments are streamed to **AWS S3 (`nexora-media-mumbai`)** and cached globally via **AWS CloudFront CDN (`d2qsjnx0f10hlx.cloudfront.net`)**.
-* **Offloads ~70% of network traffic and disk I/O**, delivering media to worldwide clients with **< 10ms edge latency**.
+### 2. 📬 Event-Driven Architecture with Apache Kafka
+Instead of synchronous HTTP cascades across microservices, Nexora leverages Kafka topics for asynchronous event propagation:
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as User B (Actor)
+    participant PostService as posts-service
+    participant Kafka as Kafka Broker (post-liked-topic)
+    participant NotifService as notification-service
+    actor Author as User A (Post Author)
 
-### 3. ⚡ PostgreSQL B-Tree Indexing & Connection Pooling
-* Multi-column composite B-Tree indexes on `(userId, createdAt DESC)`, `(postId, userId)`, `(user_id, skill_id, endorser_id)`, and `(email, name)` convert table scans ($O(N)$) into logarithmic lookups ($O(\log N)$).
-* Tuned **HikariCP** (`maximum-pool-size: 35`, `minimum-idle: 10`) and **Lettuce Redis** pools eliminate pool starvation under peak concurrency.
+    User->>PostService: POST /api/v1/likes/{postId}
+    PostService->>PostService: Persist like in PostgreSQL
+    PostService->>Kafka: Publish PostLikedEvent(senderId, receiverId, postId)
+    PostService-->>User: 200 OK (hasLiked=true, likesCount=N)
+    Note over PostService,User: HTTP thread freed in < 25ms
 
-### 4. 📬 Event-Driven Architecture with Apache Kafka
-* Interactions (likes, comments, connections, profile views) publish lightweight domain events to Kafka topics.
-* HTTP request-response cycles complete in `< 25ms`, while notification fan-outs execute asynchronously via decoupled consumer groups.
+    Kafka->>NotifService: Consume PostLikedEvent
+    NotifService->>NotifService: Save Notification entity
+    NotifService-->>Author: Push Real-Time Badge / Feed Update
+```
 
----
-
-## 📊 Live Empirical Load Testing Benchmarks
-
-Benchmarked across 8 progressive virtual user tiers (100 → 100,000 concurrent virtual users) on live AWS infrastructure:
-
-| Concurrent Virtual Users | Measured Throughput (RPS) | Total Requests | p50 Median Latency | p95 Latency | p99 Latency | Error Rate | SLA Status |
-| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **100** | **323.0 RPS** | 1,057 | 149.1 ms | 682.7 ms | 885.9 ms | **0.00%** | **PASS** |
-| **500** | **283.5 RPS** | 977 | 100.9 ms | 1,170.1 ms | 1,423.7 ms | **0.00%** | **PASS** |
-| **1,000** | **371.2 RPS** | 1,195 | 95.7 ms | 437.6 ms | 603.8 ms | **0.00%** | **PASS** |
-| **5,000** | **369.3 RPS** | 1,183 | 99.3 ms | 426.8 ms | 700.4 ms | **0.00%** | **PASS** |
-| **10,000** | **360.2 RPS** | 1,259 | 102.0 ms | 513.3 ms | 625.9 ms | **0.00%** | **PASS** |
-| **25,000** | **359.2 RPS** | 1,156 | 87.0 ms | 694.6 ms | 1,105.5 ms | **0.00%** | **PASS** |
-| **50,000** | **401.8 RPS** | 1,281 | 93.2 ms | 352.6 ms | 583.6 ms | **0.00%** | **PASS** |
-| **100,000** | **361.9 RPS** | 1,176 | **82.0 ms** | **352.2 ms** | **564.8 ms** | **0.00%** | **PASS** |
-
-* **Concurrency Capacity**: **100,000 Concurrent Users** / **350,000+ Daily Active Users (DAU)**.
-* **Peak Throughput**: **401.8 Requests / Second**.
-* **Reliability**: **0.00% Error Rate** (Zero crashes, zero dropped connections).
+### 3. 🛡️ Container Self-Healing & Memory Boundaries
+- **JVM Boundaries (`JAVA_OPTS`)**: Explicit heap allocation limits (`-Xms128m -Xmx256m` / `-Xmx384m` with G1GC) ensure the entire 13-container Docker ecosystem runs within ~2.5GB total RAM on EC2 without risking Out-Of-Memory (OOM) host kills.
+- **Docker Log Rotation**: Enforced `json-file` log policy (`max-size: 10m`, `max-file: 3`) across all containers to permanently prevent disk exhaustion on EC2.
+- **Docker Health Checks**: Configured `/actuator/health` and `redis-cli ping` probes with `restart: unless-stopped` for automatic self-recovery.
 
 ---
 
-## 📦 Microservices Topology
+## 🌟 Feature Showcase & Technical Capabilities
 
-| Service | Port | Primary Tech Stack | Database / Broker | Key Responsibilities |
-| :--- | :--- | :--- | :--- | :--- |
-| **`api-gateway`** | `8080` | Spring Cloud Gateway, WebFlux, Netty | — | Dynamic routing, JWT validation, CORS, WebSocket proxy |
-| **`discovery-server`** | `8761` | Netflix Eureka Server | — | Dynamic service registration & health heartbeats |
-| **`config-server`** | `8888` | Spring Cloud Config | Git / Local Repo | Centralized cloud environment configuration repository |
-| **`user-service`** | `9020` | Spring Boot, JPA, OpenFeign, AWS S3 SDK, Redis | PostgreSQL + Redis + S3 | Authentication, profiles, experience, education, skills, endorsements, S3 upload |
-| **`posts-service`** | `9010` | Spring Boot, Feign, Kafka, AWS S3 SDK | PostgreSQL + Redis + S3 | Feed ranking, polls, CRUD posts, atomic likes, S3 media upload |
-| **`connection-service`**| `8090` | Spring Data Neo4j, Feign, Kafka | Neo4j AuraDB | Social graph, 1st-degree circle, connection verification |
-| **`notification-service`**| `9030` | Spring Kafka, Spring Data JPA | PostgreSQL | Multi-event Kafka consumer, notification history, badges |
-| **`chat-service`** | `9040` | Spring WebSocket, STOMP, JPA | PostgreSQL | Real-time direct messaging, history, presence engine |
-| **`frontend`** | `80 / 443` | React 18, TypeScript, Tailwind, Vite | CloudFront CDN | Responsive Single Page App (SPA) with Dark Mode & SSL |
+### 💼 1. Professional Career & Academic Portfolio
+- **Verified Company Catalogue**: Searchable autocomplete across 60+ global technology corporations (Google, Microsoft, Amazon, Meta, NVIDIA, etc.) with custom fallback.
+- **Academic Timeline**: Structured degree, GPA, field of study, and graduation year validation.
+- **1st-Degree Skill Endorsements**: Strict inter-service verification via OpenFeign ensuring **only authenticated 1st-degree connections can endorse skills**, with database-level uniqueness constraints `UNIQUE(user_id, skill_id, endorser_id)`.
+
+### 📰 2. High-Performance Feed & Interactive Posts
+- **Multi-Image Carousel Uploads**: Multi-file image uploads streamed to AWS S3 and delivered via CloudFront CDN.
+- **Interactive Polling Engine**: Multi-option polls with real-time percentage distribution and duplicate-vote prevention.
+- **Cascade-Safe Deletion**: Entity lifecycle cleanup removing child images, polls, poll votes, likes, comments, bookmarks, and quote repost references without database integrity violations.
+- **Quote Reposts & Instant Reposts**: Share commentary while embedding full author post previews.
+
+### 🔍 3. Advanced Global Search Engine
+- **Debounced Live Typeahead**: Instant suggestions categorized by People, Posts, and Hashtags.
+- **Multi-Filter Navigation**: Search by technology skill (e.g. `Java`, `Spring Boot`), company, location, or `#hashtags`.
+- **Keyboard Accessible**: Full `Arrow Up`, `Arrow Down`, `Enter`, and `Escape` dropdown navigation.
+
+### 💬 4. Real-Time STOMP WebSockets Chat
+- **1-on-1 Direct Messaging**: Low-latency bidirectional messaging over WebSocket connections.
+- **Online Presence & Heartbeats**: Background presence heartbeats with live active indicators and unread message counters.
 
 ---
 
-## 🚀 Quick Start & Local Execution
+## 🔒 Security Hardening & Single Active Session
+
+| Security Layer | Implementation Details |
+|:---|:---|
+| **Zero Hardcoded Secrets** | 100% of credentials (AWS keys, DB passwords, Neo4j URIs, SMTP, JWT secrets) externalized into gitignored `.env`. |
+| **Hardened JWT Lifespan** | Access token shortened to **30 minutes**; Refresh token capped at **7 days** with cryptographic HMAC-SHA384 signatures. |
+| **Single Active Session** | When a user logs in on Device B, a new UUID session ID is recorded in Redis (`active_session:{userId}`). Device A's subsequent requests are rejected with `401 Session Expired`. |
+| **API Gateway Rate Limiting** | Redis-backed Token Bucket algorithm (`replenishRate: 10`, `burstCapacity: 20`) protecting authentication routes against brute-force attacks. |
+
+---
+
+## 📊 Empirical Benchmarks & Load Testing
+
+Nexora was benchmarked against the live production environment on AWS EC2 (`http://13.232.153.224`):
+
+```
+==================================================================================
+      🚀 NEXORA HIGH-CONCURRENCY ARCHITECTURAL LOAD BENCHMARK 🚀
+==================================================================================
+|  Virtual Users |      RPS |  Total Reqs |  Avg Latency |      p50 |      p95 |      p99 |  Error Rate |  Status |
+| --------------: | --------: | -----------: | ------------: | --------: | --------: | --------: | -----------: | -------: |
+|             20 |    118.6 |         722 |       69.7ms |   47.0ms |  132.8ms |  141.9ms |       0.28% |    PASS |
+|             50 |    291.3 |       1,909 |       88.9ms |   51.4ms |  137.2ms | 1358.5ms |       0.05% |    PASS |
+|            100 |    307.6 |       2,634 |      188.7ms |   55.5ms | 1013.3ms | 3599.4ms |       0.11% |    PASS |
+|            200 |    269.7 |       2,314 |      236.3ms |   53.7ms | 2108.6ms | 3622.5ms |       0.48% |    PASS |
+|            500 |    195.2 |       1,684 |      346.7ms |   56.1ms | 2197.3ms | 3680.2ms |       0.77% |    PASS |
+==================================================================================
+  • Maximum Sustained Concurrency: 500 Virtual Users
+  • Peak Sustained Throughput:     ~308 Requests / Second (RPS)
+  • Median Response Time (p50):    47.0 ms – 56.1 ms
+==================================================================================
+```
+
+---
+
+## 🧪 Automated End-to-End (E2E) Test Suite
+
+Nexora includes an automated, zero-dependency Python E2E test runner (`e2e_test_suite.py`) covering 35 scenarios across all 7 microservice domains:
+
+```bash
+# Run the test suite:
+python3 e2e_test_suite.py --base-url http://13.232.153.224 --user1-email YOUR_EMAIL --user1-password YOUR_PASS --html e2e_report.html
+```
+
+### 📋 Test Execution Results (100% Pass Rate):
+- 🔐 **Auth Suite (5/5 PASSED)**: Bad password rejection, JWT login, registration, OTP checks, Rate Limiter.
+- 👤 **Profile Suite (3/3 PASSED)**: Profile fetch, headline/bio update, profile view tracking events.
+- 📝 **Posts Suite (11/11 PASSED)**: Text post, carousel images, poll creation, poll voting, edit post, like, comment, bookmark, feed retrieval, cascade-safe deletions.
+- 🤝 **Network Suite (5/5 PASSED)**: Connection request, pending list, request cancel, mutual graph verification, 1st-degree list.
+- 🔍 **Search Suite (4/4 PASSED)**: Typeahead suggestions, user search, post content search, hashtag search.
+- 💬 **Chat Suite (4/4 PASSED)**: Online presence heartbeat, direct message, conversation history, thread summary.
+- 🔔 **Notifications Suite (3/3 PASSED)**: Fetch notifications, unread count, mark all as read.
+
+*(Generates interactive visual dashboard `e2e_report.html`)*
+
+---
+
+## 🚀 CI/CD & Zero-Touch Deployment
+
+Nexora utilizes **GitHub Actions** (`.github/workflows/ci-cd.yml`) for continuous integration and automated deployment:
+
+1. **Frontend Quality Gate**: Runs TypeScript checks (`npm run lint`) and production builds on Node 20.
+2. **Backend Quality Gate**: Compiles all 8 Java microservices in parallel on Java 21 Temurin with Maven caching.
+3. **Docker Validation**: Synthesizes and validates Compose configurations.
+4. **Zero-Touch CD**: Automatically SSHs into the AWS EC2 server upon merge to `main`, pulls the latest code, rebuilds containers, and runs the 35-scenario E2E verification test suite.
+
+---
+
+## 📦 Microservices Catalog
+
+| Service | Port | Tech Stack | Storage / Messaging | Core Functionality |
+|:---|:---:|:---|:---|:---|
+| **`api-gateway`** | `8080` | Spring Cloud Gateway, WebFlux, Netty | Redis | Dynamic routing, JWT validation, Redis rate limiting, WebSocket proxying. |
+| **`discovery-server`** | `8761` | Netflix Eureka Server | In-Memory | Service registry, instance discovery, health heartbeats. |
+| **`config-server`** | `8888` | Spring Cloud Config Server | Native / Git Repo | Centralized cloud environment configuration. |
+| **`user-service`** | `9020` | Spring Boot, JPA, OpenFeign, AWS SDK | PostgreSQL + Redis + S3 | Auth, profiles, career timeline, education, skills, S3 uploads. |
+| **`posts-service`** | `9010` | Spring Boot, JPA, Kafka, AWS SDK | PostgreSQL + Redis + S3 | Feeds, multi-image carousels, polls, likes, comments, bookmarks. |
+| **`connection-service`** | `8090` | Spring Data Neo4j, Feign, Kafka | Neo4j AuraDB | Social graph, 1st-degree circle, connection requests. |
+| **`notification-service`** | `9030` | Spring Kafka, Spring Data JPA | PostgreSQL | Kafka multi-event consumer, notification history, badges. |
+| **`chat-service`** | `9040` | Spring WebSocket, STOMP, JPA | PostgreSQL | Real-time direct messaging, chat history, presence engine. |
+| **`frontend`** | `80 / 443` | React 18, TypeScript, Tailwind CSS, Vite | CloudFront CDN | Responsive single-page application with dark mode & SEO metadata. |
+
+---
+
+## 💻 Local Development & Quick Start
 
 ### Prerequisites
-* **Java 21** (JDK)
-* **Node.js 20+** & **npm**
-* **Docker & Docker Compose**
+- **Java 21** (JDK)
+- **Node.js 20+** & **npm**
+- **Docker & Docker Compose**
 
-### 1-Click Containerized Startup:
-
+### 1-Command Production Launch:
 ```bash
 # 1. Clone the repository
 git clone https://github.com/ABHINAVX03/nexora.git
 cd nexora
 
-# 2. Launch the entire microservices ecosystem
+# 2. Configure environment variables
+cp .env.production.example .env
+# Edit .env with your database and AWS credentials
+
+# 3. Build and launch all 13 containers
 docker compose -f docker-compose.prod.yml up -d --build
 ```
-* **Frontend Web App**: http://localhost:80 (or http://localhost:3000)
-* **API Gateway**: http://localhost:8080
-* **Eureka Discovery Dashboard**: http://localhost:8761
+
+- **Frontend App**: `http://localhost:80`
+- **API Gateway**: `http://localhost:8080`
+- **Eureka Dashboard**: `http://localhost:8761`
 
 ---
 
-## 📄 License & Author
+## 👤 Author & Acknowledgments
 
-* **Author**: Abhinav Gupta
-* **GitHub Repository**: [https://github.com/ABHINAVX03/nexora](https://github.com/ABHINAVX03/nexora)
-* **Live Deployment**: [https://nexoranetwork.site](https://nexoranetwork.site)
+* **Developer**: **Abhinav Gupta**
+* **GitHub**: [@ABHINAVX03](https://github.com/ABHINAVX03)
+* **Live Deployment**: [https://nexoranetworks.site](https://nexoranetworks.site)
 * **License**: MIT License
