@@ -39,6 +39,7 @@ uploads/avatars/*
 *.pem
 *.key
 
-# Logs
+# Logs & Test Reports
 **/logs/
 *.log
+e2e_report.html
