@@ -249,7 +249,7 @@ public class PostService {
             log.warn("Error nullifying quote reposts for postId {}: {}", postId, e.getMessage());
         }
 
-        // 2. Delete poll and poll votes if present
+        // 2. Delete poll votes if poll exists (PollVote is not a mapped cascade on Poll)
         Optional<Poll> pollOpt = pollRepository.findByPostId(postId);
         pollOpt.ifPresent(poll -> {
             try {
@@ -257,30 +257,15 @@ public class PostService {
             } catch (Exception e) {
                 log.warn("Error deleting poll votes for pollId {}: {}", poll.getId(), e.getMessage());
             }
-            try {
-                pollRepository.delete(poll);
-            } catch (Exception e) {
-                log.warn("Error deleting poll for postId {}: {}", postId, e.getMessage());
-            }
         });
-        post.setPoll(null);
 
-        // 3. Delete legacy post_media_urls safely only if table exists
+        // 3. Delete unmapped/independent relational tables (legacy media URLs, comments, bookmarks, likes)
         try {
             if (postRepository.checkLegacyMediaUrlsTableExists() > 0) {
                 postRepository.deleteLegacyPostMediaUrls(postId);
             }
         } catch (Exception e) {
             log.warn("Could not check/clean legacy media urls for postId {}: {}", postId, e.getMessage());
-        }
-
-        try {
-            postImageRepository.deleteByPostId(postId);
-        } catch (Exception e) {
-            log.warn("Error deleting images for postId {}: {}", postId, e.getMessage());
-        }
-        if (post.getImages() != null) {
-            post.getImages().clear();
         }
 
         try {
@@ -301,9 +286,8 @@ public class PostService {
             log.warn("Error deleting likes for postId {}: {}", postId, e.getMessage());
         }
 
-        // 4. Delete the post and flush
+        // 4. Delete the post entity (Hibernate automatically cascades delete to post.images, post.poll, and poll.options)
         postRepository.delete(post);
-        postRepository.flush();
         log.info("Successfully deleted post {}", postId);
     }
 
