@@ -43,6 +43,7 @@ public class PostService {
     private final PostLikeRepository postLikeRepository;
     private final CommentRepository commentRepository;
     private final PostBookmarkRepository postBookmarkRepository;
+    private final PostImageRepository postImageRepository;
     private final PollRepository pollRepository;
     private final PollVoteRepository pollVoteRepository;
     private final ConnectionClient connectionClient;
