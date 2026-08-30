@@ -287,7 +287,15 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
   // Update post mutation
   const updatePostMutation = useMutation({
     mutationFn: async (newText: string) => {
-      return await postApi.updatePost(post.id, { content: newText, mediaUrl: post.mediaUrl });
+      const imagesList = post.images && post.images.length > 0
+        ? post.images
+        : (post.mediaUrls && post.mediaUrls.length > 0 ? post.mediaUrls : (post.mediaUrl ? [post.mediaUrl] : []));
+      return await postApi.updatePost(post.id, {
+        content: newText,
+        mediaUrl: post.mediaUrl,
+        mediaUrls: imagesList,
+        images: imagesList,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['feed-posts'] });

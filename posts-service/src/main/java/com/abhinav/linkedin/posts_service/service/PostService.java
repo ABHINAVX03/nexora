@@ -156,7 +156,11 @@ public class PostService {
         return mapToDtoWithPoll(post, currentUserId);
     }
 
-    @CacheEvict(value = "posts", key = "#postId")
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "posts", key = "#postId"),
+            @CacheEvict(value = "userFeed", allEntries = true)
+    })
     public PostDto updatePost(Long postId, PostCreateRequestDto updateDto, Long currentUserId) {
         log.info("Updating post {} by user {}", postId, currentUserId);
 
@@ -190,10 +194,13 @@ public class PostService {
             updatedRawUrls.add(updateDto.getMediaUrl().trim());
         }
 
+        // Cleanly clear existing images before adding new ones
         if (post.getImages() == null) {
             post.setImages(new ArrayList<>());
+        } else {
+            post.getImages().clear();
         }
-        post.getImages().clear();
+
         int order = 0;
         for (String url : updatedRawUrls) {
             post.getImages().add(PostImage.builder()
@@ -227,16 +234,60 @@ public class PostService {
             throw new ForbiddenException("You are not authorized to delete this post");
         }
 
+        // 1. Break any quote repost references pointing to this post
+        try {
+            postRepository.nullifyRepostOfPostId(postId);
+        } catch (Exception e) {
+            log.warn("Error nullifying quote reposts for postId {}: {}", postId, e.getMessage());
+        }
+
+        // 2. Delete poll and poll votes if present
         Optional<Poll> pollOpt = pollRepository.findByPostId(postId);
         pollOpt.ifPresent(poll -> {
-            pollVoteRepository.deleteByPollId(poll.getId());
-            pollRepository.delete(poll);
+            try {
+                pollVoteRepository.deleteByPollId(poll.getId());
+            } catch (Exception e) {
+                log.warn("Error deleting poll votes for pollId {}: {}", poll.getId(), e.getMessage());
+            }
+            try {
+                pollRepository.delete(poll);
+            } catch (Exception e) {
+                log.warn("Error deleting poll for postId {}: {}", postId, e.getMessage());
+            }
         });
+        post.setPoll(null);
 
-        commentRepository.deleteByPostId(postId);
-        postBookmarkRepository.deleteByPostId(postId);
-        postLikeRepository.deleteByPostId(postId);
+        // 3. Delete child images, comments, bookmarks, and likes
+        try {
+            postImageRepository.deleteByPostId(postId);
+        } catch (Exception e) {
+            log.warn("Error deleting images for postId {}: {}", postId, e.getMessage());
+        }
+        if (post.getImages() != null) {
+            post.getImages().clear();
+        }
+
+        try {
+            commentRepository.deleteByPostId(postId);
+        } catch (Exception e) {
+            log.warn("Error deleting comments for postId {}: {}", postId, e.getMessage());
+        }
+
+        try {
+            postBookmarkRepository.deleteByPostId(postId);
+        } catch (Exception e) {
+            log.warn("Error deleting bookmarks for postId {}: {}", postId, e.getMessage());
+        }
+
+        try {
+            postLikeRepository.deleteByPostId(postId);
+        } catch (Exception e) {
+            log.warn("Error deleting likes for postId {}: {}", postId, e.getMessage());
+        }
+
+        // 4. Delete the post and flush
         postRepository.delete(post);
+        postRepository.flush();
         log.info("Successfully deleted post {}", postId);
     }
 
