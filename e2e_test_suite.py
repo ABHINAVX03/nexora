@@ -699,7 +699,7 @@ class NexoraE2ETester:
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="Nexora Automated End-to-End (E2E) Test Suite")
-    parser.add_argument("--base-url", default="http://13.232.153.224:8080", help="Base URL of Nexora API Gateway (e.g. http://13.232.153.224:8080 or https://nexoranetworks.site)")
+    parser.add_argument("--base-url", default="http://13.232.153.224", help="Base URL of Nexora (e.g. http://13.232.153.224 or https://nexoranetworks.site or http://localhost:8080 on EC2)")
     parser.add_argument("--html", default="e2e_report.html", help="Path to output HTML report file")
     parser.add_argument("--user1-email", default=None, help="Optional registered email for User 1")
     parser.add_argument("--user1-password", default=None, help="Optional password for User 1")
