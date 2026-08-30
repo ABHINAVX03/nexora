@@ -17,7 +17,7 @@ public class EmailService {
     @Autowired(required = false)
     private JavaMailSender mailSender;
 
-    @Value("${spring.mail.username:}")
+    @Value("${spring.mail.from:${spring.mail.username:no-reply@nexoranetworks.site}}")
     private String fromEmail;
 
     public void sendVerificationEmail(String toEmail, String name, String otp) {
@@ -69,9 +69,9 @@ public class EmailService {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            String senderAddress = (fromEmail != null && !fromEmail.isBlank()) ? fromEmail : "nexoranetworks.site@gmail.com";
+            String senderAddress = (fromEmail != null && !fromEmail.isBlank()) ? fromEmail : "no-reply@nexoranetworks.site";
             helper.setFrom(senderAddress, "Nexora");
-            helper.setReplyTo(senderAddress, "Nexora Support");
+            helper.setReplyTo("support@nexoranetworks.site", "Nexora Support");
             helper.setTo(toEmail);
             helper.setSubject(subject);
 
