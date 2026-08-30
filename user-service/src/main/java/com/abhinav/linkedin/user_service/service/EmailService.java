@@ -22,33 +22,39 @@ public class EmailService {
 
     public void sendVerificationEmail(String toEmail, String name, String otp) {
         CompletableFuture.runAsync(() -> {
-            String subject = "Verify your Nexora account — " + otp;
+            String subject = "[Nexora] Verify your account — " + otp;
+            String greeting = "Hi " + (name != null ? name : "there") + ",";
+            String intro = "Thank you for joining Nexora. Use the single-use verification code below to activate your account:";
+            String footerNotice = "This code will expire in 10 minutes. If you did not create an account on Nexora, please disregard this email.";
             String htmlContent = buildEmailTemplate(
                     "Welcome to Nexora",
-                    "Hi " + (name != null ? name : "there") + ",",
-                    "Thank you for joining Nexora. Use the single-use verification code below to activate your account:",
+                    greeting,
+                    intro,
                     otp,
-                    "This code will expire in 10 minutes. If you did not create an account on Nexora, please disregard this email."
+                    footerNotice
             );
-            sendHtmlEmail(toEmail, subject, htmlContent, otp, "Email Verification");
+            sendHtmlEmail(toEmail, subject, htmlContent, otp, "Email Verification", greeting, intro, footerNotice);
         });
     }
 
     public void sendPasswordResetEmail(String toEmail, String name, String otp) {
         CompletableFuture.runAsync(() -> {
-            String subject = "Nexora Password Reset Code — " + otp;
+            String subject = "[Nexora] Password reset verification code: " + otp;
+            String greeting = "Hi " + (name != null ? name : "there") + ",";
+            String intro = "We received a request to reset your Nexora account password. Use the verification code below to proceed:";
+            String footerNotice = "This code will expire in 10 minutes. If you did not request a password reset, please change your password immediately or contact support.";
             String htmlContent = buildEmailTemplate(
                     "Password Reset Request",
-                    "Hi " + (name != null ? name : "there") + ",",
-                    "We received a request to reset your Nexora account password. Use the verification code below to proceed:",
+                    greeting,
+                    intro,
                     otp,
-                    "This code will expire in 10 minutes. If you did not request a password reset, please change your password immediately or contact support."
+                    footerNotice
             );
-            sendHtmlEmail(toEmail, subject, htmlContent, otp, "Password Recovery");
+            sendHtmlEmail(toEmail, subject, htmlContent, otp, "Password Recovery", greeting, intro, footerNotice);
         });
     }
 
-    private void sendHtmlEmail(String toEmail, String subject, String htmlBody, String plainOtp, String actionType) {
+    private void sendHtmlEmail(String toEmail, String subject, String htmlBody, String plainOtp, String actionType, String greeting, String intro, String footerNotice) {
         if (mailSender == null) {
             log.info("\n==================================================" +
                      "\n[EMAIL DISPATCH - SIMULATED / CONSOLE FALLBACK]" +
@@ -64,10 +70,28 @@ public class EmailService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             String senderAddress = (fromEmail != null && !fromEmail.isBlank()) ? fromEmail : "nexoranetworks.site@gmail.com";
-            helper.setFrom(senderAddress, "Nexora Network");
+            helper.setFrom(senderAddress, "Nexora");
+            helper.setReplyTo(senderAddress, "Nexora Support");
             helper.setTo(toEmail);
             helper.setSubject(subject);
-            helper.setText(htmlBody, true);
+
+            String plainText = """
+                %s
+                
+                %s
+                
+                VERIFICATION CODE: %s
+                
+                %s
+                
+                --
+                Nexora Network
+                https://nexoranetworks.site
+                """.formatted(greeting, intro, plainOtp, footerNotice);
+
+            helper.setText(plainText, htmlBody);
+            message.addHeader("Auto-Submitted", "auto-generated");
+            message.addHeader("X-Auto-Response-Suppress", "All");
 
             mailSender.send(message);
             log.info("Sent {} email successfully to: {}", actionType, toEmail);
