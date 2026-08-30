@@ -368,11 +368,11 @@ class NexoraE2ETester:
         res, _ = self.run_step(tc, token=self.user1["token"], user_id=user1_id, expected_status=200)
 
         # 4.3 Cancel Connection Request (to test cleanup)
-        tc = TestCase("Network", "Cancel Connection Request", "Cancel pending connection request", "POST", f"/api/v1/connections/cancel/{other_target_id}")
+        tc = TestCase("Network", "Cancel Connection Request", "Cancel pending connection request", "DELETE", f"/api/v1/connections/requests/{other_target_id}")
         res, _ = self.run_step(tc, token=self.user1["token"], user_id=user1_id, expected_status=[200, 204, 400, 404])
 
         # 4.4 Verify Mutual Connection in Graph
-        tc = TestCase("Network", "Verify Mutual Connection Status", "Check connection status between users", "GET", f"/api/v1/connections/check/{user2_id}")
+        tc = TestCase("Network", "Verify Mutual Connection Status", "Check connection status between users", "GET", f"/api/v1/connections/check/{other_target_id}")
         res, _ = self.run_step(tc, token=self.user1["token"], user_id=user1_id, expected_status=200)
 
         # 4.5 Fetch 1st Degree Connections
@@ -405,10 +405,10 @@ class NexoraE2ETester:
         res, _ = self.run_step(tc, token=self.user1["token"], user_id=user1_id, expected_status=[200, 404])
 
         tc = TestCase("Chat", "Send Direct Chat Message", "User 1 sends message to User 2", "POST", "/api/v1/chat/send")
-        chat_msg = {"recipientId": user2_id, "content": f"Hello from automated E2E test runner! {rand_id}"}
+        chat_msg = {"recipientId": other_target_id, "content": f"Hello from automated E2E test runner! {rand_id}"}
         res, status = self.run_step(tc, payload=chat_msg, token=self.user1["token"], user_id=user1_id, expected_status=[200, 201])
 
-        tc = TestCase("Chat", "Get Conversation History", "Fetch chat thread between User 1 and User 2", "GET", f"/api/v1/chat/history/{user2_id}")
+        tc = TestCase("Chat", "Get Conversation History", "Fetch chat thread between User 1 and User 2", "GET", f"/api/v1/chat/history/{other_target_id}")
         res, _ = self.run_step(tc, token=self.user1["token"], user_id=user1_id, expected_status=200)
 
         tc = TestCase("Chat", "Get Active Conversations List", "Fetch all user conversations", "GET", "/api/v1/chat/conversations")
