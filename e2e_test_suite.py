@@ -164,12 +164,32 @@ class NexoraE2ETester:
         self.test_cases.append(test_case)
         return response_data, status_code
 
+    def wait_for_gateway(self, max_retries=30, interval_sec=2):
+        print(f"{DIM}⏳ Probing API Gateway and service readiness at {self.base_url}...{RESET}")
+        for attempt in range(1, max_retries + 1):
+            try:
+                status, _, latency, _ = self._http_request(
+                    "POST", "/api/v1/auth/login",
+                    payload={"email": "readiness_probe@nexora.internal", "password": "ProbePassword123!"},
+                    timeout=3
+                )
+                if status in [400, 401, 404, 200]:
+                    print(f"{GREEN}✔ Gateway & User Service responsive (HTTP {status}, {latency}ms) after {attempt * interval_sec}s.{RESET}\n")
+                    return True
+            except Exception:
+                pass
+            time.sleep(interval_sec)
+        print(f"{YELLOW}⚠️ Gateway readiness probe timed out after {max_retries * interval_sec}s. Proceeding with tests...{RESET}\n")
+        return False
+
     def run_all(self):
         print(f"\n{BOLD}{CYAN}═══════════════════════════════════════════════════════════════════════════{RESET}")
         print(f"{BOLD}{CYAN}      🚀 NEXORA AUTOMATED END-TO-END (E2E) TEST SUITE 🚀{RESET}")
         print(f"{BOLD}{CYAN}═══════════════════════════════════════════════════════════════════════════{RESET}")
         print(f"Target Base URL: {BOLD}{self.base_url}{RESET}")
         print(f"Started at:      {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+
+        self.wait_for_gateway(max_retries=25, interval_sec=2)
 
         self.start_time = time.time()
 
@@ -235,18 +255,19 @@ class NexoraE2ETester:
         # =========================================================================
         print(f"\n{BOLD}2. 👤 Profile & Portfolio Suite{RESET}")
         
-        target_uid = self.user1["userId"] or 1
+        target_uid = self.user1.get("userId") or 1
         tc = TestCase("Profile", "Get Profile By ID", "Fetch User profile with headline and stats", "GET", f"/api/v1/users/{target_uid}")
-        res, status = self.run_step(tc, token=self.user1["token"], user_id=target_uid, expected_status=[200, 404])
+        res, status = self.run_step(tc, token=self.user1.get("token"), user_id=target_uid, expected_status=[200, 404])
         if status == 200 and isinstance(res, dict):
             tc.add_assertion("Profile contains user details", "name" in res or "id" in res)
 
         tc = TestCase("Profile", "Update Profile Headline & Bio", "Update user headline and bio", "PUT", f"/api/v1/users/{target_uid}")
-        res, status = self.run_step(tc, payload={"headline": "Senior Full-Stack Architect | Nexora", "bio": "Building scalable microservices.", "location": "San Francisco, CA"}, token=self.user1["token"], user_id=target_uid, expected_status=[200, 400, 404])
+        res, status = self.run_step(tc, payload={"headline": "Senior Full-Stack Architect | Nexora", "bio": "Building scalable microservices.", "location": "San Francisco, CA"}, token=self.user1.get("token"), user_id=target_uid, expected_status=[200, 400, 404])
 
         # Record Profile View
-        actor_token = self.user2["token"] or self.user1["token"]
-        actor_id = (self.user2["userId"] if self.user2["token"] else (self.user1["userId"] + 1)) or 2
+        actor_token = self.user2.get("token") or self.user1.get("token")
+        u1_id = self.user1.get("userId") or 1
+        actor_id = self.user2.get("userId") if self.user2.get("token") else (u1_id + 1)
         tc = TestCase("Profile", "Record Profile View Event", "Record profile view event", "GET", f"/api/v1/users/{target_uid}")
         res, _ = self.run_step(tc, token=actor_token, user_id=actor_id, expected_status=[200, 404])
 

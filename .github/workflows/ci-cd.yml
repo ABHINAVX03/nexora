@@ -118,8 +118,8 @@ jobs:
             echo "🔨 Building and launching updated containers..."
             docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
             
-            echo "⏳ Waiting 20 seconds for services to bootstrap..."
-            sleep 20
+            echo "⏳ Waiting 35 seconds for microservices to bootstrap and register with Eureka..."
+            sleep 35
             
             echo "🧪 Running Automated Post-Deployment Verification Test Suite..."
             python3 e2e_test_suite.py \
