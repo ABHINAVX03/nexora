@@ -3,7 +3,7 @@
 # 🌐 NEXORA (नेक्सोरा)
 ### Enterprise-Grade Event-Driven Distributed Professional Social Network
 
-[![Live Production Site](https://img.shields.io/badge/Live_Production-https%3A%2F%2Fnexoranetworks.site-0A66C2?style=for-the-badge&logo=googlechrome&logoColor=white)](https://nexoranetworks.site)
+[![Live Production Site](https://img.shields.io/badge/Live_Production-https%3A%2F%2Fnexoranetwork.site-0A66C2?style=for-the-badge&logo=googlechrome&logoColor=white)](https://nexoranetwork.site)
 [![AWS EC2 & CloudFront](https://img.shields.io/badge/AWS-EC2_%7C_S3_%7C_CloudFront_CDN-FF9900?style=for-the-badge&logo=amazonwebservices&logoColor=white)](https://aws.amazon.com/)
 [![E2E Verification Pass](https://img.shields.io/badge/E2E_Tests-35%2F35_PASSED_(100%25)-10B981?style=for-the-badge&logo=checkmarx&logoColor=white)](file:///Users/abhinavgupta/Desktop/Linkdin/e2e_report.html)
 [![CI/CD Pipeline](https://img.shields.io/badge/CI%2FCD-GitHub_Actions_Zero--Touch-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/ABHINAVX03/nexora/actions)
@@ -303,5 +303,5 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 * **Developer**: **Abhinav Gupta**
 * **GitHub**: [@ABHINAVX03](https://github.com/ABHINAVX03)
-* **Live Deployment**: [https://nexoranetworks.site](https://nexoranetworks.site)
+* **Live Deployment**: [https://nexoranetwork.site](https://nexoranetwork.site)
 * **License**: MIT License
