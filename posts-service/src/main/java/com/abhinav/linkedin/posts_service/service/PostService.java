@@ -201,6 +201,11 @@ public class PostService {
             post.getImages().clear();
         }
 
+        try {
+            postRepository.deleteLegacyPostMediaUrls(postId);
+        } catch (Exception ignored) {
+        }
+
         int order = 0;
         for (String url : updatedRawUrls) {
             post.getImages().add(PostImage.builder()
@@ -257,7 +262,13 @@ public class PostService {
         });
         post.setPoll(null);
 
-        // 3. Delete child images, comments, bookmarks, and likes
+        // 3. Delete legacy post_media_urls, child images, comments, bookmarks, and likes
+        try {
+            postRepository.deleteLegacyPostMediaUrls(postId);
+        } catch (Exception e) {
+            log.warn("Error deleting legacy media urls for postId {}: {}", postId, e.getMessage());
+        }
+
         try {
             postImageRepository.deleteByPostId(postId);
         } catch (Exception e) {

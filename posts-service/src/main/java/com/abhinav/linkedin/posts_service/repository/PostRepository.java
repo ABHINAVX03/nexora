@@ -23,6 +23,11 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("UPDATE Post p SET p.repostOfPostId = NULL WHERE p.repostOfPostId = :postId")
     void nullifyRepostOfPostId(@Param("postId") Long postId);
 
+    @Modifying
+    @Transactional
+    @Query(value = "DELETE FROM post_media_urls WHERE post_id = :postId", nativeQuery = true)
+    void deleteLegacyPostMediaUrls(@Param("postId") Long postId);
+
     @Query("SELECT p FROM Post p WHERE LOWER(p.content) LIKE LOWER(CONCAT('%', :query, '%')) ORDER BY p.createdAt DESC")
     List<Post> searchPostsByContent(@Param("query") String query, Pageable pageable);
 
