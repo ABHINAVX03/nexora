@@ -63,7 +63,8 @@ public class EmailService {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(fromEmail, "Nexora Network");
+            String senderAddress = (fromEmail != null && !fromEmail.isBlank()) ? fromEmail : "nexoranetworks.site@gmail.com";
+            helper.setFrom(senderAddress, "Nexora Network");
             helper.setTo(toEmail);
             helper.setSubject(subject);
             helper.setText(htmlBody, true);
