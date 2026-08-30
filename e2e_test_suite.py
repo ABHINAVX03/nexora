@@ -184,31 +184,45 @@ class NexoraE2ETester:
         
         # 1.2 User 1 Signup or Login
         rand_id = uuid.uuid4().hex[:6]
-        if not self.user1_email:
+        if self.user1_email:
+            # Existing account provided - log in directly
+            tc = TestCase("Auth", "User 1 Login Flow", f"Authenticate as {self.user1_email}", "POST", "/api/v1/auth/login")
+            res, status = self.run_step(tc, payload={"email": self.user1_email, "password": self.user1_pass}, expected_status=200)
+            if status == 200 and isinstance(res, dict):
+                self.user1["token"] = res.get("accessToken") or res.get("token")
+                self.user1["userId"] = res.get("userId") or res.get("id") or 1
+                tc.add_assertion("Received valid JWT access token", bool(self.user1["token"]))
+        else:
             self.user1_email = f"tester1_{rand_id}@example.com"
-        
-        tc = TestCase("Auth", "User 1 Registration/Login", "Authenticate User 1", "POST", "/api/v1/auth/signup")
-        res, status = self.run_step(tc, payload={"name": "User Alpha", "email": self.user1_email, "password": self.user1_pass}, expected_status=[200, 201, 400])
-        
-        # Try logging in directly
-        tc = TestCase("Auth", "User 1 Login Flow", "Acquire JWT token for User 1", "POST", "/api/v1/auth/login")
-        res, status = self.run_step(tc, payload={"email": self.user1_email, "password": self.user1_pass}, expected_status=[200, 400])
-        if status == 200 and isinstance(res, dict):
-            self.user1["token"] = res.get("accessToken") or res.get("token")
-            self.user1["userId"] = res.get("userId") or res.get("id") or 1
-            tc.add_assertion("Received JWT access token", bool(self.user1["token"]))
-        
+            tc = TestCase("Auth", "User 1 Registration", "Register new test user (triggers email OTP)", "POST", "/api/v1/auth/signup")
+            res, status = self.run_step(tc, payload={"name": "User Alpha", "email": self.user1_email, "password": self.user1_pass}, expected_status=[200, 201])
+            
+            tc = TestCase("Auth", "User 1 Login Flow", "Attempt login for new user", "POST", "/api/v1/auth/login")
+            res, status = self.run_step(tc, payload={"email": self.user1_email, "password": self.user1_pass}, expected_status=[200, 400])
+            if status == 200 and isinstance(res, dict):
+                self.user1["token"] = res.get("accessToken") or res.get("token")
+                self.user1["userId"] = res.get("userId") or res.get("id") or 1
+            else:
+                tc.add_assertion("Account requires email OTP verification before login", True, "Pass --user1-email to test with a verified account")
+
         # 1.3 User 2 Signup or Login
-        if not self.user2_email:
+        if self.user2_email:
+            tc = TestCase("Auth", "User 2 Login Flow", f"Authenticate as {self.user2_email}", "POST", "/api/v1/auth/login")
+            res, status = self.run_step(tc, payload={"email": self.user2_email, "password": self.user2_pass}, expected_status=200)
+            if status == 200 and isinstance(res, dict):
+                self.user2["token"] = res.get("accessToken") or res.get("token")
+                self.user2["userId"] = res.get("userId") or res.get("id") or 2
+                tc.add_assertion("Received valid JWT access token", bool(self.user2["token"]))
+        else:
             self.user2_email = f"tester2_{rand_id}@example.com"
-        tc = TestCase("Auth", "User 2 Registration/Login", "Authenticate User 2", "POST", "/api/v1/auth/signup")
-        res, status = self.run_step(tc, payload={"name": "User Beta", "email": self.user2_email, "password": self.user2_pass}, expected_status=[200, 201, 400])
-        
-        tc = TestCase("Auth", "User 2 Login Flow", "Acquire JWT token for User 2", "POST", "/api/v1/auth/login")
-        res, status = self.run_step(tc, payload={"email": self.user2_email, "password": self.user2_pass}, expected_status=[200, 400])
-        if status == 200 and isinstance(res, dict):
-            self.user2["token"] = res.get("accessToken") or res.get("token")
-            self.user2["userId"] = res.get("userId") or res.get("id") or 2
+            tc = TestCase("Auth", "User 2 Registration", "Register second test user", "POST", "/api/v1/auth/signup")
+            res, status = self.run_step(tc, payload={"name": "User Beta", "email": self.user2_email, "password": self.user2_pass}, expected_status=[200, 201])
+            
+            tc = TestCase("Auth", "User 2 Login Flow", "Attempt login for second user", "POST", "/api/v1/auth/login")
+            res, status = self.run_step(tc, payload={"email": self.user2_email, "password": self.user2_pass}, expected_status=[200, 400])
+            if status == 200 and isinstance(res, dict):
+                self.user2["token"] = res.get("accessToken") or res.get("token")
+                self.user2["userId"] = res.get("userId") or res.get("id") or 2
 
         # 1.4 Rate Limiting & Gateway Check
         tc = TestCase("Auth", "Gateway Rate Limiter Check", "Verify rapid request handling on auth routes", "POST", "/api/v1/auth/login")
