@@ -25,8 +25,8 @@ spring:
   mail:
     host: ${SPRING_MAIL_HOST:smtp.gmail.com}
     port: ${SPRING_MAIL_PORT:587}
-    username: ${SPRING_MAIL_USERNAME:nexoranetworks.site@gmail.com}
-    password: ${SPRING_MAIL_PASSWORD:awkthbdcdeqjlhqi}
+    username: ${SPRING_MAIL_USERNAME:}
+    password: ${SPRING_MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
@@ -36,9 +36,9 @@ spring:
             required: true
 
   datasource:
-    url: ${DB_URL:${POSTGRES_URL:jdbc:postgresql://ep-long-frost-azl3g2y0-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channelBinding=require}}
-    username: ${DB_USERNAME:${POSTGRES_USERNAME:neondb_owner}}
-    password: ${DB_PASSWORD:${POSTGRES_PASSWORD:npg_QxTDFbgf8pA4}}
+    url: ${DB_URL:${POSTGRES_URL:}}
+    username: ${DB_USERNAME:${POSTGRES_USERNAME:}}
+    password: ${DB_PASSWORD:${POSTGRES_PASSWORD:}}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -62,9 +62,9 @@ spring:
         max.block.ms: 2000
 
 jwt:
-  secret: ${JWT_SECRET_KEY:${jwt.secretKey:ZGVvbnZrbDNudmNvM3Judm8zbnZsbTNvdmp2bGVudmxlbW9rZXZvZXZtb2Zzb21lc2VjcmV0}}
-  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:31536000000}
-  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:315360000000}
+  secret: ${JWT_SECRET_KEY:}
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:1800000}
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}
 
 app:
   kafka:

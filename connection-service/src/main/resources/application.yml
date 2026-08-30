@@ -8,10 +8,10 @@ spring:
     import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
 
   neo4j:
-    uri: ${NEO4J_URI:neo4j+s://36ad1340.databases.neo4j.io}
+    uri: ${NEO4J_URI:}
     authentication:
       username: ${NEO4J_USERNAME:neo4j}
-      password: ${NEO4J_PASSWORD:uwOfNhW07RUeP79V2s-AVDfOa6vNhSBxI68WeNav9m8}
+      password: ${NEO4J_PASSWORD:}
 
   data:
     neo4j:

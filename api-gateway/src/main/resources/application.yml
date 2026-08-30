@@ -24,6 +24,12 @@ spring:
             - Path=/api/v1/auth/**
           filters:
             - StripPrefix=2
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@ipKeyResolver}"
 
         - id: user-service
           uri: lb://USER-SERVICE
@@ -75,7 +81,7 @@ spring:
           routes: *gateway_routes
 
 jwt:
-  secretKey: ${JWT_SECRET_KEY:${jwt.secret:ZGVvbnZrbDNudmNvM3Judm8zbnZsbTNvdmp2bGVudmxlbW9rZXZvZXZtb2Zzb21lc2VjcmV0}}
+  secretKey: ${JWT_SECRET_KEY:}
 
 eureka:
   client:

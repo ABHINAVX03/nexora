@@ -119,6 +119,13 @@ services:
       - REDIS_PORT=6379
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_ACCESS_TOKEN_EXPIRATION=${JWT_ACCESS_TOKEN_EXPIRATION:-1800000}
+      - JWT_REFRESH_TOKEN_EXPIRATION=${JWT_REFRESH_TOKEN_EXPIRATION:-604800000}
+      - SPRING_MAIL_HOST=${SPRING_MAIL_HOST:-smtp.gmail.com}
+      - SPRING_MAIL_PORT=${SPRING_MAIL_PORT:-587}
+      - SPRING_MAIL_USERNAME=${SPRING_MAIL_USERNAME}
+      - SPRING_MAIL_PASSWORD=${SPRING_MAIL_PASSWORD}
     depends_on:
       - config-server
       - discovery-server
@@ -236,6 +243,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
     depends_on:
       - config-server
       - discovery-server

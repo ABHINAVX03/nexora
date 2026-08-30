@@ -18,9 +18,9 @@ public class JwtService {
     private final long refreshTokenExpiration;
 
     public JwtService(
-            @Value("${jwt.secret:${jwt.secretKey:ZGVvbnZrbDNudmNvM3Judm8zbnZsbTNvdmp2bGVudmxlbW9rZXZvZXZtb2Zzb21lc2VjcmV0}}") String secret,
-            @Value("${jwt.access-token-expiration:31536000000}") long accessTokenExpiration, // 1 year default
-            @Value("${jwt.refresh-token-expiration:315360000000}") long refreshTokenExpiration // 10 years default
+            @Value("${jwt.secret:${jwt.secretKey:}}") String secret,
+            @Value("${jwt.access-token-expiration:1800000}") long accessTokenExpiration, // 30 minutes default
+            @Value("${jwt.refresh-token-expiration:604800000}") long refreshTokenExpiration // 7 days default
     ) {
         this.secretKey = Keys.hmacShaKeyFor(
                 Decoders.BASE64.decode(secret)

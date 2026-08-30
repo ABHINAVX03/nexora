@@ -17,7 +17,7 @@ public class EmailService {
     @Autowired(required = false)
     private JavaMailSender mailSender;
 
-    @Value("${spring.mail.username:nexoranetworks.site@gmail.com}")
+    @Value("${spring.mail.username:}")
     private String fromEmail;
 
     public void sendVerificationEmail(String toEmail, String name, String otp) {

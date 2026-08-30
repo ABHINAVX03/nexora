@@ -119,15 +119,21 @@ services:
       - REDIS_PORT=6379
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
-      - SPRING_MAIL_HOST=smtp.gmail.com
-      - SPRING_MAIL_PORT=587
-      - SPRING_MAIL_USERNAME=nexoranetworks.site@gmail.com
-      - SPRING_MAIL_PASSWORD=awkthbdcdeqjlhqi
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-AKIAZTI7ONPTZVCK4OM6}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-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}
+      - SPRING_MAIL_HOST=${SPRING_MAIL_HOST}
+      - SPRING_MAIL_PORT=${SPRING_MAIL_PORT}
+      - SPRING_MAIL_USERNAME=${SPRING_MAIL_USERNAME}
+      - SPRING_MAIL_PASSWORD=${SPRING_MAIL_PASSWORD}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_REGION=${AWS_REGION:-ap-south-1}
       - AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME:-nexora-media-mumbai}
-      - AWS_CLOUDFRONT_DOMAIN=${AWS_CLOUDFRONT_DOMAIN:-https://d2qsjnx0f10hlx.cloudfront.net}
+      - AWS_CLOUDFRONT_DOMAIN=${AWS_CLOUDFRONT_DOMAIN}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_ACCESS_TOKEN_EXPIRATION=${JWT_ACCESS_TOKEN_EXPIRATION:-1800000}
+      - JWT_REFRESH_TOKEN_EXPIRATION=${JWT_REFRESH_TOKEN_EXPIRATION:-604800000}
+      - DB_URL=${USER_DB_URL}
+      - DB_USERNAME=${USER_DB_USERNAME}
+      - DB_PASSWORD=${USER_DB_PASSWORD}
     depends_on:
       - config-server
       - discovery-server
@@ -154,11 +160,14 @@ services:
       - REDIS_PORT=6379
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-AKIAZTI7ONPTZVCK4OM6}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-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}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_REGION=${AWS_REGION:-ap-south-1}
       - AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME:-nexora-media-mumbai}
-      - AWS_CLOUDFRONT_DOMAIN=${AWS_CLOUDFRONT_DOMAIN:-https://d2qsjnx0f10hlx.cloudfront.net}
+      - AWS_CLOUDFRONT_DOMAIN=${AWS_CLOUDFRONT_DOMAIN}
+      - POSTGRES_URL=${POSTS_DB_URL}
+      - POSTGRES_USERNAME=${POSTS_DB_USERNAME}
+      - POSTGRES_PASSWORD=${POSTS_DB_PASSWORD}
     depends_on:
       - config-server
       - discovery-server
@@ -179,9 +188,9 @@ services:
       - CONFIG_SERVER_URL=http://config-server:8888
       - EUREKA_SERVER_URL=http://discovery-server:8761/eureka/
       - EUREKA_INSTANCE_HOSTNAME=connection-service
-      - NEO4J_URI=neo4j+s://36ad1340.databases.neo4j.io
-      - NEO4J_USERNAME=neo4j
-      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-uwOfNhW07RUeP79V2s-AVDfOa6vNhSBxI68WeNav9m8}
+      - NEO4J_URI=${NEO4J_URI}
+      - NEO4J_USERNAME=${NEO4J_USERNAME:-neo4j}
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD}
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
     depends_on:
@@ -205,6 +214,9 @@ services:
       - EUREKA_INSTANCE_HOSTNAME=notification-service
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+      - POSTGRES_URL=${NOTIF_DB_URL}
+      - POSTGRES_USERNAME=${NOTIF_DB_USERNAME}
+      - POSTGRES_PASSWORD=${NOTIF_DB_PASSWORD}
     depends_on:
       - config-server
       - discovery-server
@@ -225,6 +237,9 @@ services:
       - EUREKA_SERVER_URL=http://discovery-server:8761/eureka/
       - EUREKA_INSTANCE_HOSTNAME=chat-service
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+      - POSTGRES_URL=${CHAT_DB_URL}
+      - POSTGRES_USERNAME=${CHAT_DB_USERNAME}
+      - POSTGRES_PASSWORD=${CHAT_DB_PASSWORD}
     depends_on:
       - config-server
       - discovery-server
@@ -249,6 +264,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
     depends_on:
       - config-server
       - discovery-server

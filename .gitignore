@@ -34,6 +34,7 @@ uploads/avatars/*
 # Environment & Secret Files
 .env
 .env.local
+.env.production
 .env.*.local
 *.pem
 *.key
