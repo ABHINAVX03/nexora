@@ -23,6 +23,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("UPDATE Post p SET p.repostOfPostId = NULL WHERE p.repostOfPostId = :postId")
     void nullifyRepostOfPostId(@Param("postId") Long postId);
 
+    @Query(value = "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'post_media_urls'", nativeQuery = true)
+    long checkLegacyMediaUrlsTableExists();
+
     @Modifying
     @Transactional
     @Query(value = "DELETE FROM post_media_urls WHERE post_id = :postId", nativeQuery = true)

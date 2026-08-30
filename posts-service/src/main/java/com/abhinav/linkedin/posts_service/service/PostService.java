@@ -203,7 +203,9 @@ public class PostService {
         }
 
         try {
-            postRepository.deleteLegacyPostMediaUrls(postId);
+            if (postRepository.checkLegacyMediaUrlsTableExists() > 0) {
+                postRepository.deleteLegacyPostMediaUrls(postId);
+            }
         } catch (Exception ignored) {
         }
 
@@ -263,11 +265,13 @@ public class PostService {
         });
         post.setPoll(null);
 
-        // 3. Delete legacy post_media_urls, child images, comments, bookmarks, and likes
+        // 3. Delete legacy post_media_urls safely only if table exists
         try {
-            postRepository.deleteLegacyPostMediaUrls(postId);
+            if (postRepository.checkLegacyMediaUrlsTableExists() > 0) {
+                postRepository.deleteLegacyPostMediaUrls(postId);
+            }
         } catch (Exception e) {
-            log.warn("Error deleting legacy media urls for postId {}: {}", postId, e.getMessage());
+            log.warn("Could not check/clean legacy media urls for postId {}: {}", postId, e.getMessage());
         }
 
         try {
