@@ -3,13 +3,24 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Mail, Lock, ArrowRight, ShieldAlert } from 'lucide-react';
+import {
+  Mail,
+  Lock,
+  ArrowRight,
+  ShieldAlert,
+  AlertCircle,
+  KeyRound,
+  UserPlus,
+  WifiOff,
+  ServerCrash,
+} from 'lucide-react';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
+import { parseApiError, ParsedApiError } from '../utils/errorHandler';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -24,7 +35,8 @@ export const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const [apiError, setApiError] = useState<ParsedApiError | null>(null);
   const [sessionExpiredMsg, setSessionExpiredMsg] = useState<string | null>(() => {
     const msg = sessionStorage.getItem('nexora_session_expired');
     if (msg) {
@@ -38,6 +50,8 @@ export const LoginPage: React.FC = () => {
   const {
     register,
     handleSubmit,
+    setError,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
     defaultValues: {
@@ -48,30 +62,47 @@ export const LoginPage: React.FC = () => {
     resolver: zodResolver(loginSchema),
   });
 
+  const enteredEmail = watch('email');
+
   const onSubmit = async (data: LoginFormValues) => {
-    setErrorMsg(null);
+    setApiError(null);
     setUnverifiedEmail(null);
     setSessionExpiredMsg(null);
-    try {
-      await login({ email: data.email, password: data.password });
-      showToast('success', 'Welcome Back', 'Successfully signed into Nexora');
-      navigate('/feed');
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message ||
-        'Invalid email or password. Please verify your credentials.';
 
-      if (message.includes('EMAIL_NOT_VERIFIED') || message.includes('not verified')) {
+    try {
+      await login({ email: data.email.trim(), password: data.password });
+      showToast('success', 'Welcome Back!', 'Signed in successfully. Opening your feed...');
+      navigate('/feed', { replace: true });
+    } catch (err: any) {
+      const parsed = parseApiError(err, 'Unable to sign in. Please verify your email and password.');
+      setApiError(parsed);
+
+      // Trigger user-facing Toast notification
+      showToast(
+        parsed.isUnverified ? 'warning' : 'error',
+        parsed.title,
+        parsed.message
+      );
+
+      // Highlight specific input fields
+      if (parsed.isNotFound) {
+        setError('email', {
+          type: 'manual',
+          message: 'No account found with this email',
+        });
+      } else if (parsed.isInvalidPassword) {
+        setError('password', {
+          type: 'manual',
+          message: 'Incorrect password entered',
+        });
+      } else if (parsed.isUnverified) {
         setUnverifiedEmail(data.email.trim());
-        setErrorMsg('Your account email has not been verified yet.');
-      } else {
-        setErrorMsg(message);
       }
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-light-bg dark:bg-dark-bg transition-colors">
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-light-bg dark:bg-dark-bg transition-colors py-12">
       <div className="w-full max-w-md space-y-6">
         {/* Header Branding */}
         <div className="text-center space-y-2">
@@ -100,34 +131,108 @@ export const LoginPage: React.FC = () => {
             Welcome back
           </h2>
           <p className="text-xs text-light-muted dark:text-dark-muted">
-            Sign in to access your professional feed and network
+            Sign in to access your professional feed, network, and messages
           </p>
         </div>
 
         {/* Login Form Card */}
         <Card className="p-6 sm:p-8 border-light-border dark:border-dark-border shadow-card dark:shadow-card-dark">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {/* Single Active Session Warning */}
             {sessionExpiredMsg && (
               <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
                 <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="font-semibold">Single Active Session</p>
+                  <p className="font-semibold">Session Terminated</p>
                   <p className="text-[11px] mt-0.5">{sessionExpiredMsg}</p>
                 </div>
               </div>
             )}
 
-            {errorMsg && (
-              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 text-xs text-rose-600 dark:text-rose-400">
-                <p>{errorMsg}</p>
-                {unverifiedEmail && (
-                  <Link
-                    to={`/verify-email?email=${encodeURIComponent(unverifiedEmail)}`}
-                    className="inline-flex items-center gap-1 mt-1.5 font-bold text-brand-600 dark:text-brand-400 underline hover:text-brand-500"
-                  >
-                    <ShieldAlert className="w-3.5 h-3.5" />
-                    Click here to enter verification code
-                  </Link>
+            {/* Comprehensive API Error Feedback Alerts */}
+            {apiError && (
+              <div>
+                {/* 1. Account Not Found Banner */}
+                {apiError.isNotFound && (
+                  <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-xs text-rose-700 dark:text-rose-300 space-y-1.5">
+                    <div className="flex items-center gap-2 font-semibold text-rose-800 dark:text-rose-200">
+                      <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                      <span>{apiError.title}</span>
+                    </div>
+                    <p className="text-[11px] text-rose-600 dark:text-rose-400">
+                      {apiError.message}
+                    </p>
+                    <div className="pt-1">
+                      <Link
+                        to={`/register?email=${encodeURIComponent(enteredEmail || '')}`}
+                        className="inline-flex items-center gap-1.5 font-bold text-brand-600 dark:text-brand-400 hover:underline"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" />
+                        Create a free account now ➔
+                      </Link>
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Incorrect Password Banner */}
+                {apiError.isInvalidPassword && (
+                  <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-xs text-rose-700 dark:text-rose-300 space-y-1.5">
+                    <div className="flex items-center gap-2 font-semibold text-rose-800 dark:text-rose-200">
+                      <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                      <span>{apiError.title}</span>
+                    </div>
+                    <p className="text-[11px] text-rose-600 dark:text-rose-400">
+                      {apiError.message}
+                    </p>
+                    <div className="pt-1">
+                      <Link
+                        to={`/forgot-password?email=${encodeURIComponent(enteredEmail || '')}`}
+                        className="inline-flex items-center gap-1.5 font-bold text-brand-600 dark:text-brand-400 hover:underline"
+                      >
+                        <KeyRound className="w-3.5 h-3.5" />
+                        Forgot your password? Reset it here ➔
+                      </Link>
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. Unverified Email Banner */}
+                {apiError.isUnverified && (
+                  <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300 space-y-2">
+                    <div className="flex items-center gap-2 font-semibold text-amber-900 dark:text-amber-200">
+                      <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <span>{apiError.title}</span>
+                    </div>
+                    <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed">
+                      {apiError.message}
+                    </p>
+                    <Link
+                      to={`/verify-email?email=${encodeURIComponent(unverifiedEmail || enteredEmail || '')}`}
+                      className="inline-flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-sm transition-colors text-center"
+                    >
+                      <span>Enter 6-Digit Verification Code</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                )}
+
+                {/* 4. Rate Limit / Network / Server / General Error Banner */}
+                {!apiError.isNotFound && !apiError.isInvalidPassword && !apiError.isUnverified && (
+                  <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2.5">
+                    {apiError.isNetworkError ? (
+                      <WifiOff className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                    ) : apiError.isServerError ? (
+                      <ServerCrash className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                    )}
+                    <div className="flex-1">
+                      <p className="font-semibold text-rose-800 dark:text-rose-200">{apiError.title}</p>
+                      <p className="text-[11px] mt-0.5 text-rose-600 dark:text-rose-400">
+                        {apiError.message}
+                      </p>
+                    </div>
+                  </div>
                 )}
               </div>
             )}
@@ -161,7 +266,7 @@ export const LoginPage: React.FC = () => {
               </label>
 
               <Link
-                to="/forgot-password"
+                to={`/forgot-password?email=${encodeURIComponent(enteredEmail || '')}`}
                 className="font-medium text-brand-600 dark:text-brand-400 hover:underline"
               >
                 Forgot password?

@@ -3,13 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Mail, Lock, User as UserIcon, ArrowRight } from 'lucide-react';
+import { Mail, Lock, User as UserIcon, ArrowRight, AlertCircle, LogIn, WifiOff, ServerCrash } from 'lucide-react';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
+import { parseApiError, ParsedApiError } from '../utils/errorHandler';
 
 const registerSchema = z
   .object({
@@ -30,11 +31,13 @@ export const RegisterPage: React.FC = () => {
   const { signup } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<ParsedApiError | null>(null);
 
   const {
     register,
     handleSubmit,
+    setError,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -46,24 +49,37 @@ export const RegisterPage: React.FC = () => {
     },
   });
 
+  const enteredEmail = watch('email');
+
   const onSubmit = async (data: RegisterFormValues) => {
-    setErrorMsg(null);
+    setApiError(null);
     try {
       await signup({
-        name: data.name,
-        email: data.email,
+        name: data.name.trim(),
+        email: data.email.trim(),
         password: data.password,
       });
 
-      showToast('success', 'Verification Code Sent', 'Please check your email for the 6-digit confirmation code.');
+      showToast('success', 'Verification Code Sent', 'Please check your inbox for the 6-digit activation code.');
       navigate(`/verify-email?email=${encodeURIComponent(data.email.trim())}`);
     } catch (err: any) {
-      const msg =
-        err?.response?.data?.message ||
-        'Failed to create account. Email may already be in use.';
-      setErrorMsg(msg);
+      const parsed = parseApiError(err, 'Failed to create account. Email may already be in use.');
+      setApiError(parsed);
+
+      showToast('error', parsed.title, parsed.message);
+
+      if (parsed.message.toLowerCase().includes('already exists') || parsed.message.toLowerCase().includes('already in use')) {
+        setError('email', {
+          type: 'manual',
+          message: 'An account with this email already exists',
+        });
+      }
     }
   };
+
+  const isEmailConflict =
+    apiError?.message.toLowerCase().includes('already exists') ||
+    apiError?.message.toLowerCase().includes('already in use');
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-light-bg dark:bg-dark-bg transition-colors py-12">
@@ -95,16 +111,39 @@ export const RegisterPage: React.FC = () => {
             Create your profile
           </h2>
           <p className="text-xs text-light-muted dark:text-dark-muted">
-            Join the professional network for engineers and leaders
+            Join the professional network for engineers and tech leaders
           </p>
         </div>
 
         {/* Registration Form Card */}
         <Card className="p-6 sm:p-8 border-light-border dark:border-dark-border shadow-card dark:shadow-card-dark">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            {errorMsg && (
-              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 text-xs text-rose-600 dark:text-rose-400">
-                {errorMsg}
+            {apiError && (
+              <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-xs text-rose-700 dark:text-rose-300 space-y-1.5">
+                <div className="flex items-center gap-2 font-semibold text-rose-800 dark:text-rose-200">
+                  {apiError.isNetworkError ? (
+                    <WifiOff className="w-4 h-4 text-rose-500 shrink-0" />
+                  ) : apiError.isServerError ? (
+                    <ServerCrash className="w-4 h-4 text-rose-500 shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                  )}
+                  <span>{apiError.title}</span>
+                </div>
+                <p className="text-[11px] text-rose-600 dark:text-rose-400">
+                  {apiError.message}
+                </p>
+                {isEmailConflict && (
+                  <div className="pt-1">
+                    <Link
+                      to={`/login?email=${encodeURIComponent(enteredEmail || '')}`}
+                      className="inline-flex items-center gap-1.5 font-bold text-brand-600 dark:text-brand-400 hover:underline"
+                    >
+                      <LogIn className="w-3.5 h-3.5" />
+                      Sign in to your existing account ➔
+                    </Link>
+                  </div>
+                )}
               </div>
             )}
 

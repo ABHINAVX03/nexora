@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Mail, CheckCircle2, RefreshCw, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Mail, CheckCircle2, RefreshCw, ShieldCheck, AlertCircle, WifiOff, ServerCrash } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { authApi } from '../api/authApi';
+import { parseApiError, ParsedApiError } from '../utils/errorHandler';
 
 export const VerifyEmailPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -15,7 +16,7 @@ export const VerifyEmailPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [cooldown, setCooldown] = useState(60);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<ParsedApiError | null>(null);
 
   const { verifyEmailOtp } = useAuth();
   const { showToast } = useToast();
@@ -37,7 +38,7 @@ export const VerifyEmailPage: React.FC = () => {
     const newDigits = [...otpDigits];
     newDigits[index] = cleanValue;
     setOtpDigits(newDigits);
-    setErrorMsg(null);
+    setApiError(null);
 
     // Auto focus next input
     if (cleanValue && index < 5) {
@@ -63,7 +64,7 @@ export const VerifyEmailPage: React.FC = () => {
       newDigits[i] = pasted[i];
     }
     setOtpDigits(newDigits);
-    setErrorMsg(null);
+    setApiError(null);
 
     const nextIndex = Math.min(pasted.length, 5);
     inputRefs.current[nextIndex]?.focus();
@@ -73,24 +74,45 @@ export const VerifyEmailPage: React.FC = () => {
     if (e) e.preventDefault();
     const fullOtp = otpDigits.join('');
     if (fullOtp.length !== 6) {
-      setErrorMsg('Please enter the complete 6-digit verification code.');
+      setApiError({
+        title: 'Incomplete Code',
+        message: 'Please enter the complete 6-digit confirmation code.',
+        isNotFound: false,
+        isInvalidPassword: false,
+        isUnverified: false,
+        isRateLimited: false,
+        isNetworkError: false,
+        isServerError: false,
+        isSessionExpired: false,
+      });
       return;
     }
     if (!email) {
-      setErrorMsg('Email address is missing. Please enter your registered email.');
+      setApiError({
+        title: 'Missing Email',
+        message: 'Email address is missing. Please enter your registered email.',
+        isNotFound: false,
+        isInvalidPassword: false,
+        isUnverified: false,
+        isRateLimited: false,
+        isNetworkError: false,
+        isServerError: false,
+        isSessionExpired: false,
+      });
       return;
     }
 
     setIsSubmitting(true);
-    setErrorMsg(null);
+    setApiError(null);
 
     try {
       await verifyEmailOtp(email.trim(), fullOtp);
-      showToast('success', 'Email Verified', 'Your account has been activated successfully!');
-      navigate('/onboarding');
+      showToast('success', 'Account Activated!', 'Your email has been verified. Welcome to Nexora!');
+      navigate('/feed', { replace: true });
     } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Verification failed. Please check the code and try again.';
-      setErrorMsg(msg);
+      const parsed = parseApiError(err, 'Verification failed. Please check the code and try again.');
+      setApiError(parsed);
+      showToast('error', parsed.title, parsed.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -100,17 +122,18 @@ export const VerifyEmailPage: React.FC = () => {
     if (cooldown > 0 || isResending || !email) return;
 
     setIsResending(true);
-    setErrorMsg(null);
+    setApiError(null);
 
     try {
       const res = await authApi.resendVerificationOtp({ email: email.trim() });
-      showToast('success', 'Code Sent', res.message || 'A fresh verification code has been dispatched.');
+      showToast('success', 'Verification Code Sent', res.message || 'A fresh code has been dispatched to your inbox.');
       setCooldown(60);
       setOtpDigits(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
     } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Failed to resend code. Please wait and try again.';
-      setErrorMsg(msg);
+      const parsed = parseApiError(err, 'Failed to resend verification code. Please wait and try again.');
+      setApiError(parsed);
+      showToast('error', parsed.title, parsed.message);
     } finally {
       setIsResending(false);
     }
@@ -144,9 +167,21 @@ export const VerifyEmailPage: React.FC = () => {
         {/* Verification Card */}
         <Card className="p-6 sm:p-8 border-light-border dark:border-dark-border shadow-card dark:shadow-card-dark">
           <form onSubmit={handleVerify} className="space-y-5">
-            {errorMsg && (
-              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 text-xs text-rose-600 dark:text-rose-400">
-                {errorMsg}
+            {apiError && (
+              <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-xs text-rose-700 dark:text-rose-300 space-y-1">
+                <div className="flex items-center gap-2 font-semibold text-rose-800 dark:text-rose-200">
+                  {apiError.isNetworkError ? (
+                    <WifiOff className="w-4 h-4 text-rose-500 shrink-0" />
+                  ) : apiError.isServerError ? (
+                    <ServerCrash className="w-4 h-4 text-rose-500 shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                  )}
+                  <span>{apiError.title}</span>
+                </div>
+                <p className="text-[11px] text-rose-600 dark:text-rose-400">
+                  {apiError.message}
+                </p>
               </div>
             )}
 
