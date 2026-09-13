@@ -60,8 +60,6 @@ public class PostServiceConsumer {
         }
     }
 
-    @CircuitBreaker(name = "connectionService", fallbackMethod = "fetchConnectionsFallback")
-    
     @CircuitBreaker(name = "userService", fallbackMethod = "fetchUserNameFallback")
     public String fetchUserName(Long userId) {
         try {
