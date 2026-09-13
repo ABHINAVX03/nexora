@@ -79,6 +79,8 @@ resilience4j:
     instances:
       connectionService:
         base-config: default
+      userService:
+        base-config: default
 
 eureka:
   client:

@@ -1,5 +1,7 @@
 package com.abhinav.linkedin.notification_service.consumer;
 
+import com.abhinav.linkedin.notification_service.client.UserClient;
+import com.abhinav.linkedin.notification_service.dto.UserDto;
 import com.abhinav.linkedin.notification_service.client.ConnectionClient;
 import com.abhinav.linkedin.notification_service.dto.PersonDto;
 import com.abhinav.linkedin.notification_service.event.*;
@@ -20,6 +22,7 @@ public class PostServiceConsumer {
 
     private final ConnectionClient connectionClient;
     private final NotificationService notificationService;
+    private final UserClient userClient;
 
     @KafkaListener(
             topics = "${app.kafka.topics.post-created:post-created-topic}",
@@ -43,7 +46,8 @@ public class PostServiceConsumer {
 
                 for (PersonDto connection : connections) {
                     if (connection.getUserId() != null && !connection.getUserId().equals(postCreatedEvent.getCreatorId())) {
-                        String message = "Your connection (User #" + postCreatedEvent.getCreatorId() + ") shared a post: \"" + snippet + "\"";
+                        String creatorName = fetchUserName(postCreatedEvent.getCreatorId());
+                        String message = creatorName + " shared a post: \"" + snippet + "\"";
                         log.info("Sending post created notification to connection: {}", connection.getUserId());
                         notificationService.sendNotification(connection.getUserId(), message, "POST_CREATED", postCreatedEvent.getPostId());
                     }
@@ -54,6 +58,23 @@ public class PostServiceConsumer {
         } catch (Exception e) {
             log.error("Failed to process PostCreatedEvent for postId: {}. Error: {}", postCreatedEvent.getPostId(), e.getMessage(), e);
         }
+    }
+
+    @CircuitBreaker(name = "connectionService", fallbackMethod = "fetchConnectionsFallback")
+    
+    @CircuitBreaker(name = "userService", fallbackMethod = "fetchUserNameFallback")
+    public String fetchUserName(Long userId) {
+        try {
+            UserDto user = userClient.getUserById(userId);
+            return (user != null && user.getName() != null && !user.getName().isBlank()) ? user.getName() : "User";
+        } catch (Exception e) {
+            return "User";
+        }
+    }
+
+    public String fetchUserNameFallback(Long userId, Throwable throwable) {
+        log.warn("Circuit breaker fallback triggered for fetchUserName({}). Reason: {}", userId, throwable.getMessage());
+        return "User";
     }
 
     @CircuitBreaker(name = "connectionService", fallbackMethod = "fetchConnectionsFallback")
@@ -86,7 +107,8 @@ public class PostServiceConsumer {
             return;
         }
 
-        String message = "User " + postLikedEvent.getLikedByUserId() + " liked your post.";
+        String likerName = fetchUserName(postLikedEvent.getLikedByUserId());
+        String message = likerName + " liked your post.";
         notificationService.sendNotification(postLikedEvent.getCreatorId(), message, "POST_LIKED", postLikedEvent.getPostId());
     }
 
@@ -110,7 +132,8 @@ public class PostServiceConsumer {
         String snippet = event.getCommentContent() != null && event.getCommentContent().length() > 30
             ? event.getCommentContent().substring(0, 30) + "..."
             : event.getCommentContent();
-        String message = "User " + event.getCommenterId() + " commented: \"" + snippet + "\"";
+        String commenterName = fetchUserName(event.getCommenterId());
+        String message = commenterName + " commented: \"" + snippet + "\"";
         notificationService.sendNotification(event.getCreatorId(), message, "POST_COMMENTED", event.getPostId());
     }
 
@@ -127,7 +150,8 @@ public class PostServiceConsumer {
             return;
         }
 
-        String message = "User " + event.getSenderId() + " sent you a connection request.";
+        String senderName = fetchUserName(event.getSenderId());
+        String message = senderName + " sent you a connection request.";
         notificationService.sendNotification(event.getReceiverId(), message, "CONNECTION_REQUEST", event.getSenderId());
     }
 
@@ -144,7 +168,8 @@ public class PostServiceConsumer {
             return;
         }
 
-        String message = "User " + event.getReceiverId() + " accepted your connection request.";
+        String receiverName = fetchUserName(event.getReceiverId());
+        String message = receiverName + " accepted your connection request.";
         notificationService.sendNotification(event.getSenderId(), message, "CONNECTION_ACCEPTED", event.getReceiverId());
     }
 
