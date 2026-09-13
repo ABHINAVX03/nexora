@@ -42,7 +42,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
 
     if (notification.type === 'POST_LIKED' || notification.type === 'POST_COMMENTED' || notification.type === 'POST_CREATED') {
       if (notification.relatedEntityId) {
-        navigate(`/posts/${notification.relatedEntityId}`);
+        navigate(`/post/${notification.relatedEntityId}`);
       } else {
         navigate('/feed');
       }
