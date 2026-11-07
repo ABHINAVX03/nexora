@@ -92,11 +92,16 @@ export const NetworkPage: React.FC = () => {
     },
   });
 
-  const filteredFirstDegree = firstDegree.filter(
-    (p: Person) =>
-      p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.username?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredFirstDegree = firstDegree.filter((p: Person) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      Boolean(p.name?.toLowerCase().includes(query)) ||
+      Boolean(p.username?.toLowerCase().includes(query)) ||
+      Boolean(p.email?.toLowerCase().includes(query)) ||
+      String(p.userId).includes(query)
+    );
+  });
 
   return (
     <div className="space-y-6">

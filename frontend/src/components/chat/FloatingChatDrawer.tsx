@@ -254,7 +254,7 @@ export const FloatingChatDrawer: React.FC = () => {
 
   if (!isAuthenticated || !user) return null;
 
-  const partnerName = partnerUser?.name || 'Nexora Member';
+  const partnerName = partnerUser?.name || (activePartnerId ? `Member #${activePartnerId}` : 'Nexora Member');
   const isPartnerActive = partnerPresence?.isActive ?? false;
 
   // If completely closed, show only a floating trigger button
@@ -428,7 +428,7 @@ export const FloatingChatDrawer: React.FC = () => {
                 {connections.length > 0 ? (
                   connections.map((conn) => (
                     <ConnectionRow
-                      key={conn.userId}
+                      key={conn.userId || (conn as any).id}
                       conn={conn}
                       onSelect={selectPartner}
                     />
