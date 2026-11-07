@@ -82,27 +82,31 @@ const ConnectionRow: React.FC<{
   conn: Person;
   onSelect: (userId: number) => void;
 }> = ({ conn, onSelect }) => {
+  const targetId = Number(conn.userId || (conn as any).id);
+
   const { data: profile } = useQuery<UserDto>({
-    queryKey: ['chat-conn-user', conn.userId],
+    queryKey: ['chat-conn-user', targetId],
     queryFn: async () => {
       try {
-        return await userApi.getUserById(conn.userId);
+        if (!targetId) return null as any;
+        return await userApi.getUserById(targetId);
       } catch {
         return {
-          id: conn.userId,
-          name: conn.name || conn.username || `User #${conn.userId}`,
+          id: targetId,
+          name: conn.name || conn.username || (targetId ? `Member #${targetId}` : 'Nexora Member'),
           email: '',
         };
       }
     },
+    enabled: !isNaN(targetId) && targetId > 0,
     staleTime: 60000,
   });
 
-  const displayName = profile?.name || conn.name || conn.username || `User #${conn.userId}`;
+  const displayName = profile?.name || conn.name || conn.username || (targetId ? `Member #${targetId}` : 'Nexora Member');
 
   return (
     <div
-      onClick={() => onSelect(conn.userId)}
+      onClick={() => onSelect(targetId)}
       className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-dark-card hover:bg-slate-100 dark:hover:bg-dark-elevated border border-light-border/40 dark:border-dark-border/40 cursor-pointer transition-all"
     >
       <div className="flex items-center gap-2 min-w-0">
@@ -120,7 +124,7 @@ const ConnectionRow: React.FC<{
       <button
         onClick={(e) => {
           e.stopPropagation();
-          onSelect(conn.userId);
+          onSelect(targetId);
         }}
         className="text-[10px] px-2 py-1 rounded-lg bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-300 font-semibold hover:bg-brand-100 dark:hover:bg-brand-900 transition-colors"
       >
