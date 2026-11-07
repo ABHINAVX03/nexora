@@ -86,6 +86,22 @@ class NexoraE2ETester:
             "comment_id": None
         }
 
+    @staticmethod
+    def _extract_user_id(token):
+        if not token or "." not in token:
+            return None
+        try:
+            parts = token.split(".")
+            if len(parts) >= 2:
+                import base64
+                padded = parts[1] + "=" * ((4 - len(parts[1]) % 4) % 4)
+                payload = json.loads(base64.urlsafe_b64decode(padded.encode()).decode())
+                if "sub" in payload:
+                    return int(payload["sub"])
+        except Exception:
+            pass
+        return None
+
     def _http_request(self, method, endpoint, payload=None, token=None, user_id=None, timeout=10):
         url = f"{self.base_url}{endpoint}"
         headers = {
@@ -210,7 +226,7 @@ class NexoraE2ETester:
             res, status = self.run_step(tc, payload={"email": self.user1_email, "password": self.user1_pass}, expected_status=200)
             if status == 200 and isinstance(res, dict):
                 self.user1["token"] = res.get("accessToken") or res.get("token")
-                self.user1["userId"] = res.get("userId") or res.get("id") or 1
+                self.user1["userId"] = self._extract_user_id(self.user1["token"]) or res.get("userId") or res.get("id") or 1
                 tc.add_assertion("Received valid JWT access token", bool(self.user1["token"]))
         else:
             self.user1_email = f"tester1_{rand_id}@example.com"
@@ -221,7 +237,7 @@ class NexoraE2ETester:
             res, status = self.run_step(tc, payload={"email": self.user1_email, "password": self.user1_pass}, expected_status=[200, 400])
             if status == 200 and isinstance(res, dict):
                 self.user1["token"] = res.get("accessToken") or res.get("token")
-                self.user1["userId"] = res.get("userId") or res.get("id") or 1
+                self.user1["userId"] = self._extract_user_id(self.user1["token"]) or res.get("userId") or res.get("id") or 1
             else:
                 tc.add_assertion("Account requires email OTP verification before login", True, "Pass --user1-email to test with a verified account")
 
@@ -231,7 +247,7 @@ class NexoraE2ETester:
             res, status = self.run_step(tc, payload={"email": self.user2_email, "password": self.user2_pass}, expected_status=200)
             if status == 200 and isinstance(res, dict):
                 self.user2["token"] = res.get("accessToken") or res.get("token")
-                self.user2["userId"] = res.get("userId") or res.get("id") or 2
+                self.user2["userId"] = self._extract_user_id(self.user2["token"]) or res.get("userId") or res.get("id") or 2
                 tc.add_assertion("Received valid JWT access token", bool(self.user2["token"]))
         else:
             self.user2_email = f"tester2_{rand_id}@example.com"
@@ -242,7 +258,7 @@ class NexoraE2ETester:
             res, status = self.run_step(tc, payload={"email": self.user2_email, "password": self.user2_pass}, expected_status=[200, 400])
             if status == 200 and isinstance(res, dict):
                 self.user2["token"] = res.get("accessToken") or res.get("token")
-                self.user2["userId"] = res.get("userId") or res.get("id") or 2
+                self.user2["userId"] = self._extract_user_id(self.user2["token"]) or res.get("userId") or res.get("id") or 2
 
         # 1.4 Rate Limiting & Gateway Check
         tc = TestCase("Auth", "Gateway Rate Limiter Check", "Verify rapid request handling on auth routes", "POST", "/api/v1/auth/login")
