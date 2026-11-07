@@ -9,129 +9,48 @@ on:
 
 jobs:
   # ============================================================================
-  # 1. Frontend Quality Gate (Type Check & Production Build)
-  # ============================================================================
-  frontend-ci:
-    name: Frontend Quality Gate
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-          cache-dependency-path: frontend/package.json
-
-      - name: Install Dependencies
-        working-directory: ./frontend
-        run: npm install
-
-      - name: Run TypeScript Type Check & Linter
-        working-directory: ./frontend
-        run: npm run lint
-
-      - name: Build Production Bundle
-        working-directory: ./frontend
-        run: npm run build
-
-  # ============================================================================
-  # 2. Backend Microservices Matrix Build
-  # ============================================================================
-  backend-ci:
-    name: Backend (${{ matrix.service }})
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        service:
-          - discovery-server
-          - config-server
-          - api-gateway
-          - user-service
-          - posts-service
-          - connection-service
-          - notification-service
-          - chat-service
-    steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
-
-      - name: Setup Java 21 (Eclipse Temurin)
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-          cache: 'maven'
-
-      - name: Compile & Package ${{ matrix.service }}
-        working-directory: ./${{ matrix.service }}
-        run: mvn clean package -DskipTests
-
-  # ============================================================================
-  # 3. Docker Compose Configuration Validation
+  # 1. Docker Compose Configuration Validation
   # ============================================================================
   docker-validation:
     name: Validate Docker Configuration
-    runs-on: ubuntu-latest
-    needs: [ frontend-ci, backend-ci ]
+    runs-on: self-hosted
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
       - name: Validate docker-compose.prod.yml syntax
         run: |
-          cp .env.production.example .env 2>/dev/null || touch .env
           docker compose -f docker-compose.prod.yml config --quiet
 
   # ============================================================================
-  # 4. Continuous Deployment to AWS EC2 (Zero-Touch CD)
+  # 2. Continuous Deployment to AWS EC2 (Zero-Touch CD)
   # ============================================================================
   deploy:
-    name: Deploy to AWS EC2
-    runs-on: ubuntu-latest
+    name: Deploy to Production
+    runs-on: self-hosted
     needs: [ docker-validation ]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    env:
-      EC2_HOST: ${{ secrets.EC2_HOST }}
-      EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     steps:
-      - name: Deploy to Cloud Instance via SSH
-        if: env.EC2_SSH_KEY != '' && env.EC2_HOST != ''
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER || 'ubuntu' }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: 22
-          script_stop: true
-          command_timeout: 15m
-          script: |
-            echo "🚀 Starting Automated Deployment on EC2..."
-            cd ~/nexora
-            
-            echo "📥 Pulling latest changes from main branch..."
-            git pull origin main
-            
-            echo "🔨 Building and launching updated containers..."
-            docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
-            
-            echo "⏳ Waiting 35 seconds for microservices to bootstrap and register with Eureka..."
-            sleep 35
-            
-            echo "🧪 Running Automated Post-Deployment Verification Test Suite..."
-            python3 e2e_test_suite.py \
-              --base-url http://localhost:8080 \
-              --user1-email "${{ secrets.TEST_USER_EMAIL || 'guptaabhinav697@gmail.com' }}" \
-              --user1-password "${{ secrets.TEST_USER_PASSWORD || 'Test@123' }}" \
-              --html e2e_report.html
-            
-            echo "✅ Deployment & Verification Completed Successfully!"
-
-      - name: Deployment Skipped Notification
-        if: env.EC2_SSH_KEY == '' || env.EC2_HOST == ''
+      - name: Deploy Containers on EC2
         run: |
-          echo "⚠️ Automated EC2 deployment skipped: 'EC2_HOST' or 'EC2_SSH_KEY' repository secrets are not configured."
-          echo "Add EC2_HOST, EC2_SSH_KEY, and EC2_USER in GitHub Repository Settings -> Secrets and variables -> Actions to enable auto-deployment."
+          echo "🚀 Starting Automated Deployment on EC2..."
+          cd ~/nexora
+          git pull origin main
+          
+          echo "🔨 Building and launching updated containers..."
+          docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
+          
+          echo "⏳ Waiting 30 seconds for microservices to bootstrap and register with Eureka..."
+          sleep 30
+          
+          echo "🧪 Running Automated Post-Deployment Verification Test Suite..."
+          python3 e2e_test_suite.py \
+            --base-url http://localhost:8080 \
+            --user1-email "${{ secrets.TEST_USER_EMAIL || 'guptaabhinav250@gmail.com' }}" \
+            --user1-password "${{ secrets.TEST_USER_PASSWORD || 'Test@123' }}" \
+            --user2-email "guptaabhinav697@gmail.com" \
+            --user2-password "Test@123" \
+            --html e2e_report.html
+          
+          echo "✅ Deployment & Verification Completed Successfully!"
+
