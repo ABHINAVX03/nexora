@@ -259,6 +259,7 @@ services:
       - NEO4J_URI=${NEO4J_URI}
       - NEO4J_USERNAME=${NEO4J_USERNAME:-neo4j}
       - NEO4J_PASSWORD=${NEO4J_PASSWORD}
+      - NEO4J_DATABASE=${NEO4J_DATABASE:-64fbe566}
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
       - JAVA_OPTS=-Xms128m -Xmx256m -XX:+UseG1GC -Djava.security.egd=file:/dev/./urandom

@@ -28,13 +28,13 @@ const ConversationRow: React.FC<{
       try {
         return await userApi.getUserById(conv.otherUserId);
       } catch {
-        return { id: conv.otherUserId, name: 'Nexora Member', email: '' };
+        return { id: conv.otherUserId, name: `User #${conv.otherUserId}`, email: '' };
       }
     },
     staleTime: 60000,
   });
 
-  const partnerName = partner?.name || 'Nexora Member';
+  const partnerName = partner?.name || `User #${conv.otherUserId}`;
 
   return (
     <div
@@ -73,6 +73,59 @@ const ConversationRow: React.FC<{
           </span>
         )}
       </div>
+    </div>
+  );
+};
+
+// Component for 1st-degree connections in chat drawer that dynamically resolves real names & avatars
+const ConnectionRow: React.FC<{
+  conn: Person;
+  onSelect: (userId: number) => void;
+}> = ({ conn, onSelect }) => {
+  const { data: profile } = useQuery<UserDto>({
+    queryKey: ['chat-conn-user', conn.userId],
+    queryFn: async () => {
+      try {
+        return await userApi.getUserById(conn.userId);
+      } catch {
+        return {
+          id: conn.userId,
+          name: conn.name || conn.username || `User #${conn.userId}`,
+          email: '',
+        };
+      }
+    },
+    staleTime: 60000,
+  });
+
+  const displayName = profile?.name || conn.name || conn.username || `User #${conn.userId}`;
+
+  return (
+    <div
+      onClick={() => onSelect(conn.userId)}
+      className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-dark-card hover:bg-slate-100 dark:hover:bg-dark-elevated border border-light-border/40 dark:border-dark-border/40 cursor-pointer transition-all"
+    >
+      <div className="flex items-center gap-2 min-w-0">
+        <Avatar name={displayName} src={profile?.avatarUrl} size="sm" />
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-light-text dark:text-dark-text truncate">
+            {displayName}
+          </p>
+          <p className="text-[10px] text-light-muted dark:text-dark-muted truncate">
+            {profile?.headline || 'Connected Member'}
+          </p>
+        </div>
+      </div>
+
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelect(conn.userId);
+        }}
+        className="text-[10px] px-2 py-1 rounded-lg bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-300 font-semibold hover:bg-brand-100 dark:hover:bg-brand-900 transition-colors"
+      >
+        Chat
+      </button>
     </div>
   );
 };
@@ -370,33 +423,11 @@ export const FloatingChatDrawer: React.FC = () => {
 
                 {connections.length > 0 ? (
                   connections.map((conn) => (
-                    <div
+                    <ConnectionRow
                       key={conn.userId}
-                      onClick={() => selectPartner(conn.userId)}
-                      className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-dark-card hover:bg-slate-100 dark:hover:bg-dark-elevated border border-light-border/40 dark:border-dark-border/40 cursor-pointer transition-all"
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Avatar name={conn.name || conn.username || 'Nexora Member'} size="sm" />
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold text-light-text dark:text-dark-text truncate">
-                            {conn.name || conn.username || 'Nexora Member'}
-                          </p>
-                          <p className="text-[10px] text-light-muted dark:text-dark-muted truncate">
-                            Connected
-                          </p>
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          selectPartner(conn.userId);
-                        }}
-                        className="text-[10px] px-2 py-1 rounded-lg bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-300 font-semibold"
-                      >
-                        Chat
-                      </button>
-                    </div>
+                      conn={conn}
+                      onSelect={selectPartner}
+                    />
                   ))
                 ) : (
                   <p className="text-xs text-light-muted dark:text-dark-muted p-2 italic">
