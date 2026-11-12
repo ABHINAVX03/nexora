@@ -164,7 +164,7 @@ export const FloatingChatDrawer: React.FC = () => {
       }
     },
     enabled: isAuthenticated && !!user?.id && isOpen && !isMinimized,
-    refetchInterval: 4000,
+    refetchInterval: 8000,
   });
 
   // 2. Fetch 1st-degree connections
@@ -185,7 +185,7 @@ export const FloatingChatDrawer: React.FC = () => {
       return await chatApi.getHistory(activePartnerId);
     },
     enabled: isAuthenticated && !!activePartnerId && isOpen && !isMinimized,
-    refetchInterval: 3000,
+    refetchInterval: 4000,
   });
 
   // 4. Fetch partner profile info
@@ -207,7 +207,7 @@ export const FloatingChatDrawer: React.FC = () => {
       return await chatApi.getUserPresence(activePartnerId);
     },
     enabled: !!activePartnerId && isOpen && !isMinimized,
-    refetchInterval: 6000,
+    refetchInterval: 15000,
   });
 
   // Mark conversation as read on open

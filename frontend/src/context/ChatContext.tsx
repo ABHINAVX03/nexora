@@ -30,10 +30,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Immediate heartbeat on mount
     chatApi.sendHeartbeat().catch(() => {});
 
-    // Periodic heartbeat every 25 seconds
+    // Periodic heartbeat every 45 seconds
     const interval = setInterval(() => {
       chatApi.sendHeartbeat().catch(() => {});
-    }, 25000);
+    }, 45000);
 
     return () => clearInterval(interval);
   }, [isAuthenticated, user?.id]);
@@ -50,7 +50,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     },
     enabled: isAuthenticated && !!user?.id,
-    refetchInterval: 4000,
+    refetchInterval: 15000,
   });
 
   const openChatWith = useCallback((userId: number) => {

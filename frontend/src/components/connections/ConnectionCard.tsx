@@ -46,7 +46,8 @@ export const ConnectionCard: React.FC<ConnectionCardProps> = ({
     queryFn: async () => {
       return await chatApi.getUserPresence(person.userId);
     },
-    refetchInterval: 10000,
+    staleTime: 30000,
+    refetchInterval: 30000,
   });
 
   const displayName = userProfile?.name || person.name || person.username || 'Nexora Member';

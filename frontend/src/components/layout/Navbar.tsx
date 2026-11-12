@@ -112,7 +112,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSearch }) => {
       }
     },
     enabled: isAuthenticated,
-    refetchInterval: 6000,
+    refetchInterval: 20000,
   });
 
   const navLinks = [

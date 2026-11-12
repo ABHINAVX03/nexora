@@ -20,7 +20,7 @@ export const MobileNav: React.FC = () => {
       }
     },
     enabled: isAuthenticated,
-    refetchInterval: 6000,
+    refetchInterval: 20000,
   });
 
   if (!isAuthenticated) return null;

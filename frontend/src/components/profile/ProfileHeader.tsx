@@ -57,7 +57,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     queryFn: async () => {
       return await chatApi.getUserPresence(user.id);
     },
-    refetchInterval: 8000,
+    enabled: !isSelf && !!user.id,
+    refetchInterval: 25000,
   });
 
   const isActive = isSelf || (presence?.isActive ?? false);

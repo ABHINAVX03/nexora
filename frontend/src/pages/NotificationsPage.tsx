@@ -29,7 +29,7 @@ export const NotificationsPage: React.FC = () => {
     queryFn: async () => {
       return await notificationApi.getNotifications();
     },
-    refetchInterval: 6000,
+    refetchInterval: 20000,
   });
 
   // Mark single as read mutation with instantaneous optimistic update
